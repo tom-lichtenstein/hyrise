@@ -25,8 +25,8 @@ JitAllTypeVariant variant_to_jit_variant(const AllTypeVariant& variant) {
 
 }  // namespace
 
-JitExpression::JitExpression(const JitTupleValue& tuple_value, const AllTypeVariant& variant, const bool use_value_id)
-    : _expression_type{JitExpressionType::Column}, _result_value{tuple_value}, _variant(variant_to_jit_variant(variant)), _is_null(variant_is_null(variant)), _use_value_id(use_value_id) {}
+JitExpression::JitExpression(const JitTupleValue& tuple_value, const AllTypeVariant& variant, const bool disable_variant)
+    : _expression_type{JitExpressionType::Column}, _result_value{tuple_value}, _variant(variant_to_jit_variant(variant)), _is_null(variant_is_null(variant)), _disable_variant(disable_variant) {}
 
 JitExpression::JitExpression(const std::shared_ptr<const JitExpression>& child, const JitExpressionType expression_type,
                              const size_t result_tuple_index)
@@ -254,7 +254,7 @@ Value<T> JitExpression::compute_and_get(JitRuntimeContext& context) const {
     }
 #endif
     if (_result_value.data_type() == DataType::Null) return {true, T()};
-    if (!_use_value_id) {
+    if (!_disable_variant) {
       return {_is_null, std::get<T>(_variant)};
     }
     if (_result_value.is_nullable()) {

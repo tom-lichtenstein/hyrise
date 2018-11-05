@@ -27,7 +27,7 @@ class BaseJitSegmentReaderWrapper;
 using JitAllTypeVariant = std::variant<BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_TRANSFORM(GET_ELEM, 0, JIT_DATA_TYPE_INFO))>;
 class JitExpression {
  public:
-  explicit JitExpression(const JitTupleValue& tuple_value, const AllTypeVariant& variant = AllTypeVariant(), const bool use_value_id = false);
+  explicit JitExpression(const JitTupleValue& tuple_value, const AllTypeVariant& variant = AllTypeVariant(), const bool disable_variant = true);
   JitExpression(const std::shared_ptr<const JitExpression>& child, const JitExpressionType expression_type,
                 const size_t result_tuple_index);
   JitExpression(const std::shared_ptr<const JitExpression>& left_child, const JitExpressionType expression_type,
@@ -72,7 +72,7 @@ class JitExpression {
   const JitTupleValue _result_value;
   const JitAllTypeVariant _variant;
   const bool _is_null = false;
-  const bool _use_value_id = false;
+  const bool _disable_variant = true;
 #if JIT_LAZY_LOAD
   const bool _load_column = false;
   const std::shared_ptr<BaseJitSegmentReaderWrapper> _input_segment_wrapper;
