@@ -11,13 +11,13 @@ namespace opossum {
 
 namespace {
 
-JitAllTypeVariant variant_to_jit_variant(const AllTypeVariant& variant, const JitTupleValue& tuple_value) {
+JitAllTypeVariant variant_to_jit_variant(const AllTypeVariant& variant, const JitTupleValue& tuple_value, const bool disable_variant) {
   JitAllTypeVariant jit_variant;
   if (tuple_value.data_type() == DataType::Null) return jit_variant;
 
   resolve_data_type(tuple_value.data_type(), [&](const auto current_data_type_t) {
     using CurrentType = typename decltype(current_data_type_t)::type;
-    if (variant_is_null(variant)) {
+    if (disable_variant || variant_is_null(variant)) {
       jit_variant = CurrentType();
     } else {
       DebugAssert(tuple_value.data_type() == data_type_from_all_type_variant(variant), "Data types must match.");
@@ -30,7 +30,7 @@ JitAllTypeVariant variant_to_jit_variant(const AllTypeVariant& variant, const Ji
 }  // namespace
 
 JitExpression::JitExpression(const JitTupleValue& tuple_value, const AllTypeVariant& variant, const bool disable_variant)
-    : _expression_type{JitExpressionType::Column}, _result_value{tuple_value}, _variant(variant_to_jit_variant(variant, tuple_value)), _is_null(variant_is_null(variant)), _disable_variant(disable_variant) {}
+    : _expression_type{JitExpressionType::Column}, _result_value{tuple_value}, _variant(variant_to_jit_variant(variant, tuple_value, disable_variant)), _is_null(variant_is_null(variant)), _disable_variant(disable_variant) {}
 
 JitExpression::JitExpression(const std::shared_ptr<const JitExpression>& child, const JitExpressionType expression_type,
                              const size_t result_tuple_index)
