@@ -122,6 +122,18 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
   if (jittable_node_count == 1 && (node->type != LQPNodeType::Aggregate && !has_predicate))
     return nullptr;
 
+  if (jittable_node_count == 1 && has_predicate) {
+    auto current_node = node;
+    while (current_node->type != LQPNodeType::Predicate) {
+      current_node = current_node->left_input();
+    }
+    const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(current_node);
+    if (std::dynamic_pointer_cast<BinaryPredicateExpression>(predicate_node->predicate)) {
+      // do not jit for single table scan
+      return nullptr;
+    }
+  }
+
   // limit can only be the root node
   const bool use_limit = node->type == LQPNodeType::Limit;
   const auto& last_node = use_limit ? node->left_input() : node;
