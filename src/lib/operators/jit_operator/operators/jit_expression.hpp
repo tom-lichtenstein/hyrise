@@ -14,6 +14,17 @@ namespace opossum {
 
 class BaseJitSegmentReaderWrapper;
 
+#define JIT_EXPRESSION_MEMBER(r, d, type)                                           \
+  BOOST_PP_TUPLE_ELEM(3, 0, type) BOOST_PP_TUPLE_ELEM(3, 1, type); \
+  template <typename T = BOOST_PP_TUPLE_ELEM(3, 0, type), typename = typename std::enable_if_t<std::is_same_v<T, BOOST_PP_TUPLE_ELEM(3, 0, type)>>>        \
+  __attribute__((always_inline)) BOOST_PP_TUPLE_ELEM(3, 0, type) get() const { \
+    return BOOST_PP_TUPLE_ELEM(3, 1, type);                                   \
+  } \
+  template <typename T = BOOST_PP_TUPLE_ELEM(3, 0, type), typename = typename std::enable_if_t<std::is_same_v<T, BOOST_PP_TUPLE_ELEM(3, 0, type)>>>        \
+  __attribute__((always_inline)) void set(const BOOST_PP_TUPLE_ELEM(3, 0, type) & value) { \
+    BOOST_PP_TUPLE_ELEM(3, 1, type) = value;                                                            \
+  }
+
 /* JitExpression represents a SQL expression - this includes arithmetic and logical expressions as well as comparisons.
  * Each JitExpression works on JitTupleValues and is structured as a binary tree. All leaves of that tree reference a tuple
  * value in the JitRuntimeContext and are of type JitExpressionType::Column - independent of whether these values actually
@@ -70,9 +81,10 @@ class JitExpression {
   const std::shared_ptr<const JitExpression> _right_child;
   const JitExpressionType _expression_type;
   const JitTupleValue _result_value;
-  const JitAllTypeVariant _variant;
+  //const JitAllTypeVariant _variant;
   const bool _is_null = false;
   const bool _disable_variant = true;
+  BOOST_PP_SEQ_FOR_EACH(JIT_EXPRESSION_MEMBER, _, JIT_DATA_TYPE_INFO)
 #if JIT_LAZY_LOAD
   const bool _load_column = false;
   const std::shared_ptr<BaseJitSegmentReaderWrapper> _input_segment_wrapper;

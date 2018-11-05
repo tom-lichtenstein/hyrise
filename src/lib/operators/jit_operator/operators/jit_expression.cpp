@@ -4,33 +4,25 @@
 
 #include "../jit_constant_mappings.hpp"
 #include "../jit_operations.hpp"
+#include "../jit_types.hpp"
 #include "jit_read_tuples.hpp"
 #include "jit_segment_reader.hpp"
 
 namespace opossum {
 
-namespace {
-
-JitAllTypeVariant variant_to_jit_variant(const AllTypeVariant& variant, const JitTupleValue& tuple_value, const bool disable_variant) {
-  JitAllTypeVariant jit_variant;
-  if (tuple_value.data_type() == DataType::Null) return jit_variant;
-
-  resolve_data_type(tuple_value.data_type(), [&](const auto current_data_type_t) {
-    using CurrentType = typename decltype(current_data_type_t)::type;
-    if (disable_variant || variant_is_null(variant)) {
-      jit_variant = CurrentType();
-    } else {
-      DebugAssert(tuple_value.data_type() == data_type_from_all_type_variant(variant), "Data types must match.");
-      jit_variant = boost::get<CurrentType>(variant);
-    }
-  });
-  return jit_variant;
-}
-
-}  // namespace
-
 JitExpression::JitExpression(const JitTupleValue& tuple_value, const AllTypeVariant& variant, const bool disable_variant)
-    : _expression_type{JitExpressionType::Column}, _result_value{tuple_value}, _variant(variant_to_jit_variant(variant, tuple_value, disable_variant)), _is_null(variant_is_null(variant)), _disable_variant(disable_variant) {}
+    : _expression_type{JitExpressionType::Column}, _result_value{tuple_value}, _is_null(variant_is_null(variant)), _disable_variant(disable_variant) {
+  if (!variant_is_null(variant)) {
+    resolve_data_type(data_type_from_all_type_variant(variant), [&](const auto current_data_type_t) {
+      using CurrentType = typename decltype(current_data_type_t)::type;
+      set<CurrentType>(boost::get<CurrentType>(variant));
+      using Bool = int32_t;
+      if constexpr (std::is_same_v<CurrentType, Bool>) {
+        set<bool>(boost::get<CurrentType>(variant));
+      }
+    });
+  }
+}
 
 JitExpression::JitExpression(const std::shared_ptr<const JitExpression>& child, const JitExpressionType expression_type,
                              const size_t result_tuple_index)
@@ -259,7 +251,7 @@ Value<T> JitExpression::compute_and_get(JitRuntimeContext& context) const {
 #endif
     if (_result_value.data_type() == DataType::Null) return {true, T()};
     if (!_disable_variant) {
-      return {_is_null, std::get<T>(_variant)};
+      return {_is_null, get<T>()};
     }
     if (_result_value.is_nullable()) {
       return {_result_value.is_null(context), _result_value.get<T>(context)};
