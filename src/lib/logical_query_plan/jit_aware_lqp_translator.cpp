@@ -13,6 +13,7 @@
 #include "expression/arithmetic_expression.hpp"
 #include "expression/logical_expression.hpp"
 #include "expression/lqp_column_expression.hpp"
+#include "expression/binary_predicate_expression.hpp"
 #include "expression/parameter_expression.hpp"
 #include "expression/value_expression.hpp"
 #include "global.hpp"
