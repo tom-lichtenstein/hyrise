@@ -60,6 +60,7 @@ int main(int argc, char* argv[]) {
   bool& lazy_load = opossum::Global::get().lazy_load;
   bool& interpret = opossum::Global::get().interpret;
   bool& jit_validate = opossum::Global::get().jit_validate;
+  opossum::Global::get().use_times = true;
 
   std::vector<opossum::QueryID> query_ids;
 

@@ -167,7 +167,8 @@ void AbstractOperator::execute() {
 
   if (Global::get().jit_evaluate) {
     result["operators"].push_back(op2);
-
+  }
+  if (Global::get().use_times) {
     auto find = Global::get().times.find(_type);
     if (find != Global::get().times.end()) {
       find->second.preparation_time += preparation_time;

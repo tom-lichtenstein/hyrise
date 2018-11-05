@@ -21,6 +21,7 @@ struct Global : public Singleton<Global> {
   bool deep_copy_exists = false;
   bool jit_evaluate = false;
   bool interpret = false;
+  bool use_times = false;
   std::map<OperatorType, OperatorTimes> times;
 
  private:
