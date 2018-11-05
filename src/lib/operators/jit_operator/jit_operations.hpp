@@ -221,9 +221,6 @@ Value<ValueType> jit_compute_and_get(const T& op_func, const std::shared_ptr<con
   // Handle NULL values and return if either input is NULL.
   const auto lhs = left_side->result();
   const auto rhs = right_side->result();
-  if (lhs.data_type() == DataType::Null || rhs.data_type() == DataType::Null) {
-    return {true, ValueType()};
-  }
 
   // This lambda calls the op_func (a lambda that performs the actual computation) with typed arguments and stores
   // the result.
@@ -244,7 +241,8 @@ Value<ValueType> jit_compute_and_get(const T& op_func, const std::shared_ptr<con
   switch (combined_types) {
     BOOST_PP_SEQ_FOR_EACH_PRODUCT(JIT_COMPUTE_CASE_AND_GET, (JIT_DATA_TYPE_INFO)(JIT_DATA_TYPE_INFO))
     default:
-      Fail("Code unreachable.");
+      // lhs or rhs is NULL
+      return {true, ValueType()};
   }
 }
 

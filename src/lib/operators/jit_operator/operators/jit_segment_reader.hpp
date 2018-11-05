@@ -91,8 +91,7 @@ public:
   __attribute__((always_inline)) void read_value(JitRuntimeContext& context) final {
 #if JIT_LAZY_LOAD && !JIT_OLD_LAZY_LOAD
     const size_t current_offset = context.chunk_offset;
-    // _iterator += current_offset - _chunk_offset;
-    std::advance(_iterator, current_offset - _chunk_offset);
+    _iterator += current_offset - _chunk_offset;
     _chunk_offset = current_offset;
 #endif
 #endif
