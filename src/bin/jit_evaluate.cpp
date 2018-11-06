@@ -222,6 +222,29 @@ void generte_tables(const nlohmann::json& config, const float scale_factor) {
     opossum::JitTableGenerator generator(scale_factor, opossum::ChunkID(100000));
     generator.generate_and_store();
   }
+
+  if (config["globals"]["dictionary_compress"]) {
+    std::cerr << "Dictionary encoding tables" << std::endl;
+    for (const auto& table_name : opossum::StorageManager::get().table_names()) {
+      auto table = opossum::StorageManager::get().get_table(table_name);
+      opossum::ChunkEncodingSpec chunk_spec;
+      for (const auto& column_data_type : table->column_data_types()) {
+        if (column_data_type == opossum::DataType::String) {
+          chunk_spec.emplace_back(opossum::EncodingType::Dictionary);
+        } else {
+          chunk_spec.emplace_back(opossum::EncodingType::Unencoded);
+        }
+      }
+      opossum::ChunkEncoder::encode_all_chunks(table, chunk_spec);
+    }
+  }
+
+  std::cerr << "Table Information" << std::endl;
+  for (const auto& table_name : opossum::StorageManager::get().table_names()) {
+    auto table = opossum::StorageManager::get().get_table(table_name);
+    std::cerr << table_name << ": " << table->row_count() << " rows, " << table->chunk_count() << " chunks, "
+              << table->column_count() << " columns, " << table->estimate_memory_usage() << " bytes" << std::endl;
+  }
 }
 
 int main(int argc, char* argv[]) {
@@ -248,21 +271,6 @@ int main(int argc, char* argv[]) {
   double current_scale_factor = scale_factor;
 
   generte_tables(config, current_scale_factor);
-
-  if (config["globals"]["dictionary_compress"]) {
-    std::cerr << "Dictionary encoding tables" << std::endl;
-    for (const auto& table_name : opossum::StorageManager::get().table_names()) {
-      auto table = opossum::StorageManager::get().get_table(table_name);
-      opossum::ChunkEncoder::encode_all_chunks(table);
-    }
-  }
-
-  std::cerr << "Table Information" << std::endl;
-  for (const auto& table_name : opossum::StorageManager::get().table_names()) {
-    auto table = opossum::StorageManager::get().get_table(table_name);
-    std::cerr << table_name << ": " << table->row_count() << " rows, " << table->chunk_count() << " chunks, "
-              << table->column_count() << " columns, " << table->estimate_memory_usage() << " bytes" << std::endl;
-  }
 
   std::cerr << "Initializing JIT repository" << std::endl;
   opossum::JitRepository::get();
