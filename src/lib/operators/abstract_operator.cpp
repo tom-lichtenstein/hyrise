@@ -187,6 +187,10 @@ void AbstractOperator::execute() {
                 reinterpret_cast<uintptr_t>(this));
 }
 
+bool AbstractOperator::was_executed() const {
+  return _output != nullptr;
+}
+
 // returns the result of the operator
 std::shared_ptr<const Table> AbstractOperator::get_output() const {
   DebugAssert(
