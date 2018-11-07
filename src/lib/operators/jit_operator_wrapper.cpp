@@ -250,12 +250,12 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
         operators.push_back(jit_op);
       }
     };
-
-    add_time("_JitBeforeQuery", before_query_time);
-    add_time("_JitAfterQuery", after_query_time);
-    add_time("_JitBeforChunk", before_chunk_time);
-    add_time("_JitAfterChunk", after_chunk_time);
-    add_time("_Function", function_time);
+    std::string name_prefix = Global::get().deep_copy_exists ? "__" : "";
+    add_time(name_prefix + "_JitBeforeQuery", before_query_time);
+    add_time(name_prefix + "_JitAfterQuery", after_query_time);
+    add_time(name_prefix + "_JitBeforChunk", before_chunk_time);
+    add_time(name_prefix + "_JitAfterChunk", after_chunk_time);
+    add_time(name_prefix + "_Function", function_time);
 
 #if JIT_MEASURE
     std::chrono::nanoseconds operator_total_time{0};

@@ -107,15 +107,18 @@ void AbstractOperator::execute() {
 
   const auto preparation_time = performance_timer.lap();
 
-  nlohmann::json op = {{"name", name()}, {"prepare", true}, {"walltime", preparation_time.count()}};
+  if (Global::get().jit_evaluate) {
+    std::string name_prefix = Global::get().deep_copy_exists ? "__" : "";
+    nlohmann::json op = {{"name", name_prefix + name()}, {"prepare", true}, {"walltime", preparation_time.count()}};
 #if PAPI_SUPPORT
-  for (uint32_t i = 0; i < num_counters; ++i) {
-    op[papi_events[i].get<std::string>()] = papi_values[i];
-    papi_values[i] = 0;
-  }
+    for (uint32_t i = 0; i < num_counters; ++i) {
+      op[papi_events[i].get<std::string>()] = papi_values[i];
+      papi_values[i] = 0;
+    }
 #endif
 
-  if (Global::get().jit_evaluate) result["operators"].push_back(op);
+    result["operators"].push_back(op);
+  }
 
   performance_timer.lap();
 
@@ -158,14 +161,15 @@ void AbstractOperator::execute() {
 
   _performance_data->walltime = performance_timer.lap();
 
-  nlohmann::json op2 = {{"name", name()}, {"prepare", false}, {"walltime", _performance_data->walltime.count()}};
+  if (Global::get().jit_evaluate) {
+    std::string name_prefix = Global::get().deep_copy_exists ? "__" : "";
+    nlohmann::json op2 = {{"name", name_prefix + name()}, {"prepare", false}, {"walltime", _performance_data->walltime.count()}};
 #if PAPI_SUPPORT
-  for (uint32_t i = 0; i < num_counters; ++i) {
-    op2[papi_events[i].get<std::string>()] = papi_values[i];
-  }
+    for (uint32_t i = 0; i < num_counters; ++i) {
+      op2[papi_events[i].get<std::string>()] = papi_values[i];
+    }
 #endif
 
-  if (Global::get().jit_evaluate) {
     result["operators"].push_back(op2);
   }
   if (Global::get().use_times) {
