@@ -18,10 +18,6 @@ class JitReadValue : public AbstractJittable {
   }
 
   std::string description() const final;
-#if JIT_OLD_LAZY_LOAD
-  void consume(JitRuntimeContext& context) const;
-  std::shared_ptr<JitReadValue> _incr;
-#endif
 
  private:
   void _consume(JitRuntimeContext& context) const final;

@@ -78,14 +78,6 @@ void JitOperatorWrapper::insert_loads(const bool lazy) {
     _specialized_function->jit_operators = jit_operators;
     return;
   }
-#if JIT_OLD_LAZY_LOAD
-  auto last = std::make_shared<JitReadValue>(_source()->input_columns()[0], input_wrappers[0]);
-  _source()->_incr = last;
-  for (size_t index = 1; index < _source()->input_columns().size(); ++index) {
-    last->_incr = std::make_shared<JitReadValue>(_source()->input_columns()[index], input_wrappers[index]);
-    last = last->_incr;
-  }
-#endif
   std::map<size_t, size_t> inverted_input_columns;
   auto input_columns = _source()->input_columns();
   for (size_t input_column_index = 0; input_column_index < input_columns.size(); ++input_column_index) {

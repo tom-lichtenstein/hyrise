@@ -90,10 +90,6 @@ class JitReadTuples : public AbstractJittable {
 
   void add_input_segment_iterators(JitRuntimeContext& context, const Table& in_table, const Chunk& in_chunk, const bool prepare_wrapper);
 
-#if JIT_OLD_LAZY_LOAD
-  std::shared_ptr<JitReadValue> _incr;
-#endif
-
  protected:
   uint32_t _num_tuple_values{0};
   std::vector<std::shared_ptr<BaseJitSegmentReaderWrapper>> _input_wrappers;

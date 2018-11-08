@@ -11,13 +11,6 @@ std::string JitReadValue::description() const {
   return desc.str();
 }
 
-#if JIT_OLD_LAZY_LOAD
-void JitReadValue::consume(JitRuntimeContext& context) const {
-  _input_segment_wrapper->increment(context);
-  if (_incr) _incr->consume(context);
-}
-#endif
-
 void JitReadValue::_consume(JitRuntimeContext& context) const {
   _input_segment_wrapper->read_value(context);
   _emit(context);
