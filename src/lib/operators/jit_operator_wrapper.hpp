@@ -20,11 +20,25 @@ enum class JitExecutionMode { Interpret, Compile };
  */
 class JitOperatorWrapper : public AbstractReadOnlyOperator {
  public:
+  struct SpecializedFunction {
+    SpecializedFunction(const std::vector<std::shared_ptr<AbstractJittable>>& jit_operators, const bool insert_loads) :
+            jit_operators{jit_operators}, insert_loads{insert_loads} {}
+    SpecializedFunction() = default;
+    std::vector<std::shared_ptr<AbstractJittable>> jit_operators;
+    bool insert_loads = true;
+    std::function<void(const JitReadTuples*, JitRuntimeContext&)> execute_func;
+    std::mutex specialize_mutex;
+  };
+
+  JitOperatorWrapper(
+      const std::shared_ptr<const AbstractOperator>& left,
+      const JitExecutionMode execution_mode,
+      const std::shared_ptr<SpecializedFunction> specialized_function);
+
   explicit JitOperatorWrapper(
       const std::shared_ptr<const AbstractOperator>& left,
       const JitExecutionMode execution_mode = JitExecutionMode::Compile,
-      const std::vector<std::shared_ptr<AbstractJittable>>& jit_operators = {}, const bool insert_loads = true,
-      const std::function<void(const JitReadTuples*, JitRuntimeContext&)>& execute_func = nullptr);
+      const std::vector<std::shared_ptr<AbstractJittable>>& jit_operators = {});
 
   const std::string name() const final;
   const std::string description(DescriptionMode description_mode) const final;
@@ -53,11 +67,8 @@ class JitOperatorWrapper : public AbstractReadOnlyOperator {
 
   JitExecutionMode _execution_mode;
   JitCodeSpecializer _module;
-  std::vector<std::shared_ptr<AbstractJittable>> _jit_operators;
-  bool _insert_loads;
-  std::function<void(const JitReadTuples*, JitRuntimeContext&)> _execute_func;
   std::vector<AllTypeVariant> _input_parameter_values;
-  std::mutex _specialize_mutex;
+  std::shared_ptr<SpecializedFunction> _specialized_function;
 };
 
 }  // namespace opossum

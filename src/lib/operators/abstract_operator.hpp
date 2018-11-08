@@ -85,8 +85,6 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
   // Overriding implementations need to call on_operator_started/finished() on the _transaction_context as well
   virtual void execute();
 
-  bool was_executed() const;
-
   // returns the result of the operator
   // When using OperatorTasks, they automatically clear this once all successors are done. This reduces the number of
   // temporary tables.

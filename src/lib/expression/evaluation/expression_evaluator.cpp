@@ -928,7 +928,7 @@ std::shared_ptr<const Table> ExpressionEvaluator::_evaluate_select_expression_fo
   }
 
   // TODO(moritz) deep_copy() shouldn't be necessary for every row if we could re-execute PQPs...
-  auto row_pqp = expression.pqp->was_executed() ? expression.pqp->deep_copy() : expression.pqp;
+  auto row_pqp = expression.pqp->deep_copy();
   row_pqp->set_parameters(parameters);
 
   SQLQueryPlan query_plan{CleanupTemporaries::Yes};

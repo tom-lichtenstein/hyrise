@@ -61,8 +61,14 @@ void JitReadTuples::before_query(const Table& in_table, const std::vector<AllTyp
 #endif
   if (_row_count_expression) {
     const auto num_rows_expression_result =
-        ExpressionEvaluator{}.evaluate_expression_to_result<int64_t>(*_row_count_expression);
-    context.limit_rows = num_rows_expression_result->value(0);
+            ExpressionEvaluator{}.evaluate_expression_to_result<int64_t>(*_row_count_expression);
+    Assert(num_rows_expression_result->size() == 1, "Expected exactly one row for Limit");
+    Assert(!num_rows_expression_result->is_null(0), "Expected non-null for Limit");
+
+    const auto signed_num_rows = num_rows_expression_result->value(0);
+    Assert(signed_num_rows >= 0, "Can't Limit to a negative number of Rows");
+
+    context.limit_rows = static_cast<size_t>(signed_num_rows);
   }
 
   const auto set_value_from_input = [&context](const JitTupleValue& tuple_value, const AllTypeVariant& value) {
