@@ -191,7 +191,7 @@ void JitOperatorWrapper::_choose_execute_func() {
   // specialize = false;
   if (specialize) {
     // this corresponds to "opossum::JitReadTuples::execute(opossum::JitRuntimeContext&) const"
-    _specialized_function->execute_func = _module.specialize_and_compile_function<void(const JitReadTuples*, JitRuntimeContext&)>(
+    _specialized_function->execute_func = _specialized_function->module.specialize_and_compile_function<void(const JitReadTuples*, JitRuntimeContext&)>(
         "_ZNK7opossum13JitReadTuples7executeERNS_17JitRuntimeContextE",
         std::make_shared<JitConstantRuntimePointer>(_source().get()), two_specialization_passes);
   } else {

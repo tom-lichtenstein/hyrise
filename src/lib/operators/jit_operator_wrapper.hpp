@@ -28,6 +28,7 @@ class JitOperatorWrapper : public AbstractReadOnlyOperator {
     bool insert_loads = true;
     std::function<void(const JitReadTuples*, JitRuntimeContext&)> execute_func;
     std::mutex specialize_mutex;
+    JitCodeSpecializer module;
   };
 
   JitOperatorWrapper(
@@ -66,7 +67,6 @@ class JitOperatorWrapper : public AbstractReadOnlyOperator {
   void _choose_execute_func();
 
   JitExecutionMode _execution_mode;
-  JitCodeSpecializer _module;
   std::vector<AllTypeVariant> _input_parameter_values;
   std::shared_ptr<SpecializedFunction> _specialized_function;
 };
