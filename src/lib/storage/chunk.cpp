@@ -61,7 +61,7 @@ void Chunk::append(const std::vector<AllTypeVariant>& values) {
 }
 
 std::shared_ptr<BaseSegment> Chunk::get_segment(ColumnID column_id) const {
-  return std::atomic_load(&_segments.at(column_id));
+  return std::atomic_load(&_segments[column_id]);
 }
 
 const Segments& Chunk::segments() const { return _segments; }
