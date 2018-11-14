@@ -127,9 +127,66 @@
       "tables": [
         "TABLE_SCAN"
       ]
+    },
+    "limit": {
+      "query": "select * from customer where exists (select * from orders where o_custkey = c_custkey);",
+      "tables": [
+        "customer", "orders"
+      ]
+    },
+    "tmp": {
+      "query": "select o_custkey, min(o_orderkey), max(o_orderkey) from orders group by o_custkey order by o_custkey limit 100;",
+      "tables": [
+        "orders"
+      ]
     }
   },
   "experiments": [
+    {
+      "engine": "jit",
+      "query_id": "tmp",
+      "repetitions": 1,
+      "print": true,
+      "task": "run"
+    },
+    {
+      "engine": "jit",
+      "query_id": "limit",
+      "pqp_file": "limit_pqp_jit",
+      "task": "pqp"
+    },
+    {
+      "engine": "jit",
+      "query_id": "limit",
+      "lqp_file": "limit_lqp_jit",
+      "task": "lqp"
+    },
+    {
+      "engine": "opossum",
+      "query_id": "limit",
+      "pqp_file": "limit_pqp_opossum",
+      "task": "pqp"
+    },
+    {
+      "engine": "opossum",
+      "query_id": "limit",
+      "lqp_file": "limit_lqp_opossum",
+      "task": "lqp"
+    },
+    {
+      "engine": "jit",
+      "query_id": "limit",
+      "repetitions": 1,
+      "task": "run"
+    },
+    {
+      "engine": "opossum",
+      "query_id": "limit",
+      "repetitions": 1,
+      "task": "run"
+    }
+  ],
+  "_experiments": [
     {
       "engine": "jit",
       "query_id": "Q-E",
@@ -177,6 +234,18 @@
     }
   ],
   "_experiments": [
+    {
+      "engine": "jit",
+      "query_id": "JIT_CUSTOM_SCAN_BENCHMARK",
+      "pqp_file": "JIT_CUSTOM_SCAN_BENCHMARK_pqp_jit",
+      "task": "pqp"
+    },
+    {
+      "engine": "jit",
+      "query_id": "JIT_CUSTOM_SCAN_BENCHMARK",
+      "lqp_file": "JIT_CUSTOM_SCAN_BENCHMARK_lqp_jit",
+      "task": "lqp"
+    },
     {
       "engine": "jit",
       "query_id": "JIT_CUSTOM_SCAN_BENCHMARK",
