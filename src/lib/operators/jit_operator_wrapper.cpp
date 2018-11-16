@@ -220,7 +220,7 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   auto before_query_time = timer.lap();
 
   // std::cout << "total chunks: " << in_table->chunk_count() << std::endl;
-  for (opossum::ChunkID chunk_id{0}; chunk_id < in_table->chunk_count(); ++chunk_id) {
+  for (opossum::ChunkID chunk_id{0}; chunk_id < in_table->chunk_count() && context.limit_rows; ++chunk_id) {
     /*
     if (chunk_id + 1 == in_table->chunk_count()) {
       std::cout << "last chunk, chunk no " << chunk_id << std::endl;
@@ -239,8 +239,6 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
     function_time += timer.lap();
     _sink()->after_chunk(in_table, *out_table, context);
     after_chunk_time += timer.lap();
-    // break, if limit is reached
-    if (context.chunk_offset == std::numeric_limits<ChunkOffset>::max()) break;
   }
 
   _sink()->after_query(*out_table, context);

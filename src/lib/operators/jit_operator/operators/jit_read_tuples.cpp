@@ -69,6 +69,8 @@ void JitReadTuples::before_query(const Table& in_table, const std::vector<AllTyp
     Assert(signed_num_rows >= 0, "Can't Limit to a negative number of Rows");
 
     context.limit_rows = static_cast<size_t>(signed_num_rows);
+  } else {
+    context.limit_rows = std::numeric_limits<size_t>::max();
   }
 
   const auto set_value_from_input = [&context](const JitTupleValue& tuple_value, const AllTypeVariant& value) {
