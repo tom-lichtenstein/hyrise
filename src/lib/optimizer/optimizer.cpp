@@ -14,11 +14,14 @@
 #include "strategy/constant_calculation_rule.hpp"
 #include "strategy/exists_reformulation_rule.hpp"
 #include "strategy/index_scan_rule.hpp"
+#include "strategy/insert_limit_in_exists.hpp"
 #include "strategy/join_detection_rule.hpp"
 #include "strategy/join_ordering_rule.hpp"
 #include "strategy/limit_pushdown_rule.hpp"
 #include "strategy/predicate_reordering_rule.hpp"
 #include "utils/performance_warning.hpp"
+
+#include "global.hpp"
 
 /**
  * IMPORTANT NOTES ON OPTIMIZING SUB-SELECT LQPS
@@ -105,6 +108,8 @@ std::shared_ptr<Optimizer> Optimizer::create_default_optimizer() {
   final_batch.add_rule(std::make_shared<PredicateReorderingRule>());
 
   final_batch.add_rule(std::make_shared<IndexScanRule>());
+
+  if (Global::get().jit) final_batch.add_rule(std::make_shared<InsertLimitInExistsRule>());
 
   final_batch.add_rule(std::make_shared<LimitPushdownRule>());
 
