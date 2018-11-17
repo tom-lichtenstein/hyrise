@@ -48,10 +48,6 @@ void JitVariantVector::resize(const size_t new_size) {
   _is_null.resize(new_size);
 }
 
-bool JitVariantVector::is_null(const size_t index) { return _is_null[index]; }
-
-void JitVariantVector::set_is_null(const size_t index, const bool is_null) { _is_null[index] = is_null; }
-
 std::vector<bool>& JitVariantVector::get_is_null_vector() { return _is_null; }
 
 // Generate get, set, grow_by_one, and get_vector methods for all data types defined in JIT_DATA_TYPE_INFO
@@ -77,17 +73,9 @@ JitTupleValue::JitTupleValue(const std::pair<const DataType, const bool> data_ty
 
 DataType JitTupleValue::data_type() const { return _data_type; }
 
-bool JitTupleValue::is_nullable() const { return _data_type == DataType::Null || _is_nullable; }
+bool JitTupleValue::is_nullable() const { return _is_nullable; }
 
 size_t JitTupleValue::tuple_index() const { return _tuple_index; }
-
-bool JitTupleValue::is_null(JitRuntimeContext& context) const {
-  return _is_nullable && context.tuple.is_null(_tuple_index);
-}
-
-void JitTupleValue::set_is_null(const bool is_null, JitRuntimeContext& context) const {
-  context.tuple.set_is_null(_tuple_index, is_null);
-}
 
 bool JitTupleValue::operator==(const JitTupleValue& other) const {
   return data_type() == other.data_type() && is_nullable() == other.is_nullable() &&

@@ -159,8 +159,8 @@ class JitVariantVector {
     Int[index] = value;
   }
    */
-  bool is_null(const size_t index);
-  void set_is_null(const size_t index, const bool is_null);
+  bool is_null(const size_t index) { return _is_null[index]; }
+  void set_is_null(const size_t index, const bool is_null) { _is_null[index] = is_null; }
 
   // Adds an element to the internal vector for the specified data type.
   // The initial value can be set to Zero, MaxValue, or MinValue in a data type independent way.
@@ -263,8 +263,12 @@ class JitTupleValue {
     context.tuple.set<T>(_tuple_index, value);
   }
 
-  bool is_null(JitRuntimeContext& context) const;
-  void set_is_null(const bool is_null, JitRuntimeContext& context) const;
+  bool is_null(JitRuntimeContext& context) const {
+    return _is_nullable && context.tuple.is_null(_tuple_index);
+  }
+  void set_is_null(const bool is_null, JitRuntimeContext& context) const {
+    context.tuple.set_is_null(_tuple_index, is_null);
+  }
 
   // Compares two JitTupleValue instances for equality. This method does NOT compare actual concrete values but only the
   // configuration (data type, nullability, tuple index) of the tuple values. I.e., two equal JitTupleValues refer to
