@@ -186,7 +186,8 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
 
     if (jit_boolean_expression->expression_type() != JitExpressionType::Column) {
       // make sure that the expression gets computed ...
-      jit_operator->add_jit_operator(std::make_shared<JitFilter>(jit_boolean_expression));
+      jit_operator->add_jit_operator(std::make_shared<JitCompute>(jit_boolean_expression));
+      jit_operator->add_jit_operator(std::make_shared<JitFilter>(jit_boolean_expression->result()));
     } else {
       // and then filter on the resulting boolean.
       jit_operator->add_jit_operator(std::make_shared<JitFilter>(jit_boolean_expression->result()));
