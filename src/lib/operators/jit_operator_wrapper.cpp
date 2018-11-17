@@ -158,7 +158,7 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   _source()->before_query(*in_table, _input_parameter_values, context);
   _sink()->before_query(*in_table, *out_table, context);
 
-  for (opossum::ChunkID chunk_id{0}; chunk_id < in_table->chunk_count(); ++chunk_id) {
+  for (opossum::ChunkID chunk_id{0}; chunk_id < in_table->chunk_count() && context.limit_rows; ++chunk_id) {
     _source()->before_chunk(*in_table, chunk_id, _input_parameter_values, context);
     _execute_func(_source().get(), context);
     _sink()->after_chunk(in_table, *out_table, context);

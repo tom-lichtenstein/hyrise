@@ -47,7 +47,9 @@ void JitReadTuples::before_query(const Table& in_table, const std::vector<AllTyp
   if (_row_count_expression) {
     const auto num_rows_expression_result =
         ExpressionEvaluator{}.evaluate_expression_to_result<int64_t>(*_row_count_expression);
-    context.limit_rows = num_rows_expression_result->value(0);
+    context.limit_rows = static_cast<size_t>(num_rows_expression_result->value(0));
+  } else {
+    context.limit_rows = std::numeric_limits<size_t>::max();
   }
 
   const auto set_value_from_input = [&context](const JitTupleValue& tuple_value, const AllTypeVariant& value) {

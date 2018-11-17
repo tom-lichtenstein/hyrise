@@ -167,7 +167,7 @@ struct JitRuntimeContext {
   std::shared_ptr<const Table> referenced_table;
   std::shared_ptr<const PosList> pos_list;
 
-  int64_t limit_rows;  // signed integer used to allow decrementing below 0
+  size_t limit_rows;
   ChunkID chunk_id;
   std::shared_ptr<PosList> output_pos_list;
 };
