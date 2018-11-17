@@ -223,12 +223,15 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
                                           boost::starts_with(function_name, "_ZN7opossum");
 
     print = boost::contains(function_name, "read_value") || boost::contains(function_name, "read_and_get_value")
-            || boost::contains(function_name, "increment") /* || boost::contains(function_name, "jit_aggregate_compute") */;
-    // print = false;
+            || boost::contains(function_name, "increment") // /* || boost::contains(function_name, "jit_aggregate_compute") */;
+            || boost::contains(function_name, "jit_compute_and_get") || boost::contains(function_name,  "compute_and_get");
+    print = false;
 
-    if (boost::contains(function_name, "ValueSegmentIterable") && boost::contains(function_name, "string")) {
-      function_has_opossum_namespace = false;
-    }
+
+    // string segment access functions cause errors during code specialization
+    bool string_segment_access = (boost::contains(function_name, "ValueSegmentIterable")
+      || boost::contains(function_name, "DictionarySegmentIterable"))
+           && boost::contains(function_name, "basic_string");
 
     // A note about "__clang_call_terminate":
     // __clang_call_terminate is generated / used internally by clang to call the std::terminate function when exception
@@ -238,7 +241,7 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
 
     // All function that are not in the opossum:: namespace are not considered for inlining. Instead, a function
     // declaration (without a function body) is created.
-    if (!function_has_opossum_namespace && function_name != "__clang_call_terminate") {
+    if ((!function_has_opossum_namespace || string_segment_access) && function_name != "__clang_call_terminate") {
       if (print) std::cerr << "Func: " << function_name << " ! function_has_opossum_namespace" << std::endl;
       context.llvm_value_map[function] = _create_function_declaration(context, *function, function->getName());
       call_sites.pop();
@@ -258,8 +261,8 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
     if (first_argument_cannot_be_resolved) {
       // std::cout << "first_argument_cannot_be_resolved for func: " << function_name << std::endl;
     }
-    if ((first_argument_cannot_be_resolved && function_name != "__clang_call_terminate")
-                                ||  boost::contains(function_name, "DictionarySegmentIterable")) {
+
+    if (first_argument_cannot_be_resolved && function_name != "__clang_call_terminate") {
       if (print) std::cerr << "Func: " << function_name << " first_argument_cannot_be_resolved" << std::endl;
       call_sites.pop();
       continue;
