@@ -16,6 +16,8 @@ set(
 
     tpch/tpch_queries.cpp
     tpch/tpch_queries.hpp
+    tpch/tpch_query_generator.cpp
+    tpch/tpch_query_generator.hpp
     tpch/tpch_db_generator.cpp
     tpch/tpch_db_generator.hpp
 
@@ -25,6 +27,8 @@ set(
     table_generator.cpp
     table_generator.hpp
 
+    abstract_query_generator.cpp
+    abstract_query_generator.hpp
     benchmark_runner.cpp
     benchmark_runner.hpp
     benchmark_utils.cpp

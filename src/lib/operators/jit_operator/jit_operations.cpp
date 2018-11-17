@@ -80,9 +80,11 @@ void jit_or(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleVa
 #else
 void jit_and(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result,
              JitRuntimeContext& context) {
-  DebugAssert(
-      lhs.data_type() == DataType::Bool && rhs.data_type() == DataType::Bool && result.data_type() == DataType::Bool,
-      "invalid type for operation");
+  // If the input values are computed by non-jit operators, their data type is int but they can be read as bool values.
+  DebugAssert((lhs.data_type() == DataType::Bool || lhs.data_type() == DataType::Int) &&
+                  (rhs.data_type() == DataType::Bool || rhs.data_type() == DataType::Int) &&
+                  result.data_type() == DataType::Bool,
+              "invalid type for jit operation and");
 
   // three-valued logic AND
   if (lhs.is_null(context)) {
@@ -96,9 +98,11 @@ void jit_and(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleV
 
 void jit_or(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result,
             JitRuntimeContext& context) {
-  DebugAssert(
-      lhs.data_type() == DataType::Bool && rhs.data_type() == DataType::Bool && result.data_type() == DataType::Bool,
-      "invalid type for operation");
+  // If the input values are computed by non-jit operators, their data type is int but they can be read as bool values.
+  DebugAssert((lhs.data_type() == DataType::Bool || lhs.data_type() == DataType::Int) &&
+                  (rhs.data_type() == DataType::Bool || rhs.data_type() == DataType::Int) &&
+                  result.data_type() == DataType::Bool,
+              "invalid type for jit operation or");
 
   // three-valued logic OR
   if (lhs.is_null(context)) {
@@ -111,12 +115,14 @@ void jit_or(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleVa
 }
 #endif
 
+// TODO(anyone) State Machine is currently build for every comparison. It should be build only once.
 bool jit_like(const std::string& a, const std::string& b) {
   const auto regex_string = LikeMatcher::sql_like_to_regex(b);
   const auto regex = std::regex{regex_string};
   return std::regex_match(a, regex);
 }
 
+// TODO(anyone) State Machine is currently build for every comparison. It should be build only once.
 bool jit_not_like(const std::string& a, const std::string& b) {
   const auto regex_string = LikeMatcher::sql_like_to_regex(b);
   const auto regex = std::regex{regex_string};

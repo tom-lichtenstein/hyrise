@@ -136,24 +136,6 @@ void JitOperatorWrapper::_prepare() {
   _choose_execute_func();
 }
 
-namespace {
-
-TableType input_table_type(const std::shared_ptr<const AbstractOperator>& node) {
-  if (const auto in_table = node->get_output()) {
-    return in_table->type();
-  }
-  switch (node->type()) {
-    case OperatorType::TableWrapper:
-    case OperatorType::GetTable:
-    case OperatorType::Aggregate:
-      return TableType::Data;
-    default:
-      return TableType::References;
-  }
-}
-
-}  // namespace
-
 
 void JitOperatorWrapper::_choose_execute_func() {
   std::lock_guard<std::mutex> guard(_specialized_function->specialize_mutex);
@@ -162,7 +144,7 @@ void JitOperatorWrapper::_choose_execute_func() {
   if (_source()->input_wrappers().empty()) _source()->create_default_input_wrappers();
   for (auto& jit_operator : _specialized_function->jit_operators) {
     if (auto jit_validate = std::dynamic_pointer_cast<JitValidate>(jit_operator)) {
-      jit_validate->set_input_table_type(input_table_type(input_left()));
+      jit_validate->set_input_table_type(in_table->type());
     }
   }
 
