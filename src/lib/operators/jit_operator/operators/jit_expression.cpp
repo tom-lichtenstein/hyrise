@@ -161,6 +161,12 @@ void JitExpression::compute(JitRuntimeContext& context) const {
     case JitExpressionType::LessThanEquals:
       jit_compute(jit_less_than_equals, _left_child->result(), _right_child->result(), _result_value, context);
       break;
+    case JitExpressionType::Like:
+      jit_compute(jit_like, _left_child->result(), _right_child->result(), _result_value, context);
+      break;
+    case JitExpressionType::NotLike:
+      jit_compute(jit_not_like, _left_child->result(), _right_child->result(), _result_value, context);
+      break;
 
     case JitExpressionType::And:
 #if JIT_LOGICAL_PRUNING
@@ -253,11 +259,7 @@ Value<T> JitExpression::compute_and_get(JitRuntimeContext& context) const {
     if (!_disable_variant) {
       return {_is_null, get<T>()};
     }
-    if (_result_value.is_nullable()) {
-      return {_result_value.is_null(context), _result_value.get<T>(context)};
-    } else {
-      return {false, _result_value.get<T>(context)};
-    }
+    return {_result_value.is_null(context), _result_value.get<T>(context)};
   }
 
   if (!jit_expression_is_binary(_expression_type)) {
