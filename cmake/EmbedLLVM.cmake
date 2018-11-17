@@ -45,7 +45,9 @@ function(EMBED_LLVM OUTPUT_FILE SYMBOL_NAME)
     # Step 2: Compiling input files to LLVM-IR
     get_directory_property(COMPILE_DEFS COMPILE_DEFINITIONS)
     foreach(COMPILE_DEFINITION ${COMPILE_DEFS})
-        set(CUSTOM_COMPILE_DEFINITIONS ${CUSTOM_COMPILE_DEFINITIONS} -D${COMPILE_DEFINITION})
+        if (NOT ${COMPILE_DEFINITION} MATCHES "IS_DEBUG.*")
+            set(CUSTOM_COMPILE_DEFINITIONS ${CUSTOM_COMPILE_DEFINITIONS} -D${COMPILE_DEFINITION})
+        endif()
     endforeach()
     set(FLAGS -std=c++17 -O3 -fwhole-program-vtables -flto ${CMAKE_CXX_FLAGS})
     add_custom_command(
