@@ -223,7 +223,7 @@ std::shared_ptr<AbstractExpression> lqp_subplan_to_boolean_expression(
         const std::function<bool(const std::shared_ptr<AbstractLQPNode>& lqp)>& node_is_allowed) {
   if (!node_is_allowed(lqp)) return nullptr;
   static const auto whitelist =
-      std::set<LQPNodeType>{LQPNodeType::Projection, LQPNodeType::Sort};
+      std::set<LQPNodeType>{LQPNodeType::Projection, LQPNodeType::Sort, LQPNodeType::Validate};
 
   if (whitelist.count(lqp->type)) return lqp_subplan_to_boolean_expression(lqp->left_input(), node_is_allowed);
 
