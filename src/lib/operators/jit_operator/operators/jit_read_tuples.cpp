@@ -190,9 +190,9 @@ bool JitReadTuples::before_chunk(const Table& in_table, const ChunkID chunk_id,
     } else {
       DebugAssert(in_chunk.references_exactly_one_table(),
                   "Input to Validate contains a Chunk referencing more than one table.");
-      const auto& ref_col_in = std::dynamic_pointer_cast<const ReferenceSegment>(in_chunk.get_segment(ColumnID{0}));
-      context.referenced_table = ref_col_in->referenced_table();
-      context.pos_list = ref_col_in->pos_list();
+      const auto& ref_segment_in = std::dynamic_pointer_cast<const ReferenceSegment>(in_chunk.get_segment(ColumnID{0}));
+      context.referenced_table = ref_segment_in->referenced_table();
+      context.pos_list = ref_segment_in->pos_list();
     }
   }
 
