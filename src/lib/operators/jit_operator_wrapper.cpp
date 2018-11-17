@@ -126,13 +126,6 @@ void JitOperatorWrapper::_prepare() {
   Assert(_source(), "JitOperatorWrapper does not have a valid source node.");
   Assert(_sink(), "JitOperatorWrapper does not have a valid sink node.");
 
-  const auto& in_table = *input_left()->get_output();
-
-  if (in_table.chunk_count() > 0 && _source()->input_wrappers().empty()) {
-    JitRuntimeContext context;
-    _source()->add_input_segment_iterators(context, in_table, *in_table.get_chunk(ChunkID(0)), true);
-  }
-
   _choose_execute_func();
 }
 
@@ -140,6 +133,8 @@ void JitOperatorWrapper::_prepare() {
 void JitOperatorWrapper::_choose_execute_func() {
   std::lock_guard<std::mutex> guard(_specialized_function->specialize_mutex);
   if (_specialized_function->execute_func) return;
+
+  const auto in_table = input_left()->get_output();
 
   if (_source()->input_wrappers().empty()) _source()->create_default_input_wrappers();
   for (auto& jit_operator : _specialized_function->jit_operators) {
