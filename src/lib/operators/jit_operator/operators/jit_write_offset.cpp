@@ -41,9 +41,9 @@ void JitWriteOffset::after_chunk(const std::shared_ptr<const Table>& in_table, T
     Segments out_segments;
 
     out_segments.reserve(_output_columns.size());
-    if (in_table->type() == TableType::References) {
-      const auto chunk_in = in_table->get_chunk(context.chunk_id);
 
+    const auto chunk_in = in_table->get_chunk(context.chunk_id);
+    if (in_table->type() == TableType::References) {
       auto filtered_pos_lists = std::map<std::shared_ptr<const PosList>, std::shared_ptr<PosList>>{};
 
       for (const auto& output_colum : _output_columns) {
@@ -61,6 +61,9 @@ void JitWriteOffset::after_chunk(const std::shared_ptr<const Table>& in_table, T
 
         if (!filtered_pos_list) {
           filtered_pos_list = std::make_shared<PosList>();
+          if (pos_list_in->references_single_chunk()) {
+            filtered_pos_list->guarantee_single_chunk();
+          }
           filtered_pos_list->reserve(context.output_pos_list->size());
 
           for (const auto& match : *context.output_pos_list) {
@@ -73,6 +76,7 @@ void JitWriteOffset::after_chunk(const std::shared_ptr<const Table>& in_table, T
         out_segments.push_back(ref_segment_out);
       }
     } else {
+      context.output_pos_list->guarantee_single_chunk();
       for (const auto& output_colum : _output_columns) {
         auto ref_segment_out =
             std::make_shared<ReferenceSegment>(in_table, output_colum.referenced_column_id, context.output_pos_list);
@@ -82,9 +86,10 @@ void JitWriteOffset::after_chunk(const std::shared_ptr<const Table>& in_table, T
     out_table.append_chunk(out_segments);
     // check if current chunk is last
     if (context.chunk_id + 1 < in_table->chunk_count()) {
+      const auto chunk_in_size = chunk_in->size();
       _selectivity =
-          static_cast<float>(context.output_pos_list->size()) / in_table->get_chunk(ChunkID(context.chunk_id))->size();
-      _create_output_chunk(context, in_table->get_chunk(ChunkID(context.chunk_id + 1))->size());
+          static_cast<float>(context.output_pos_list->size()) / chunk_in_size;
+      _create_output_chunk(context, chunk_in_size);
     }
   }
 }
