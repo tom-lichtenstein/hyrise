@@ -17,6 +17,7 @@
 #include "strategy/join_detection_rule.hpp"
 #include "strategy/join_ordering_rule.hpp"
 #include "strategy/limit_pushdown_rule.hpp"
+#include "strategy/logical_reduction_rule.hpp"
 #include "strategy/predicate_reordering_rule.hpp"
 #include "utils/performance_warning.hpp"
 
@@ -86,9 +87,12 @@ std::shared_ptr<Optimizer> Optimizer::create_default_optimizer() {
   auto optimizer = std::make_shared<Optimizer>(100);
 
   RuleBatch final_batch(RuleBatchExecutionPolicy::Once);
-  final_batch.add_rule(std::make_shared<ConstantCalculationRule>());
 
   // Run pruning just once since the rule would otherwise insert the pruning ProjectionNodes multiple times.
+  final_batch.add_rule(std::make_shared<ConstantCalculationRule>());
+
+  final_batch.add_rule(std::make_shared<LogicalReductionRule>());
+
   final_batch.add_rule(std::make_shared<ColumnPruningRule>());
 
   final_batch.add_rule(std::make_shared<ExistsReformulationRule>());
@@ -180,9 +184,6 @@ bool Optimizer::_apply_rule(const AbstractRule& rule, const std::shared_ptr<Abst
     for (const auto& select_expression : lqp_and_select_expressions.second) {
       select_expression->lqp = root_node->left_input();
     }
-
-    // Explicitly untie the root node, otherwise the LQP is left with an expired output weak_ptr
-    root_node->set_left_input(nullptr);
   }
 
   return lqp_changed;

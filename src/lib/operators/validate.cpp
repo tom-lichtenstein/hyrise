@@ -82,7 +82,7 @@ std::shared_ptr<const Table> Validate::_on_execute(std::shared_ptr<TransactionCo
 
         auto mvcc_data = referenced_chunk->get_scoped_mvcc_data_lock();
 
-        if (::opossum::is_row_visible(our_tid, snapshot_commit_id, row_id.chunk_offset, *mvcc_data)) {
+        if (opossum::is_row_visible(our_tid, snapshot_commit_id, row_id.chunk_offset, *mvcc_data)) {
           pos_list_out->emplace_back(row_id);
         }
       }
@@ -105,7 +105,7 @@ std::shared_ptr<const Table> Validate::_on_execute(std::shared_ptr<TransactionCo
       // Generate pos_list_out.
       auto chunk_size = chunk_in->size();  // The compiler fails to optimize this in the for clause :(
       for (auto i = 0u; i < chunk_size; i++) {
-        if (::opossum::is_row_visible(our_tid, snapshot_commit_id, i, *mvcc_data)) {
+        if (opossum::is_row_visible(our_tid, snapshot_commit_id, i, *mvcc_data)) {
           pos_list_out->emplace_back(RowID{chunk_id, i});
         }
       }

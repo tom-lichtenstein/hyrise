@@ -65,7 +65,7 @@ const std::unordered_map<ArithmeticOperator, JitExpressionType> arithmetic_opera
 const std::unordered_map<LogicalOperator, JitExpressionType> logical_operator_to_jit_expression = {
     {LogicalOperator::And, JitExpressionType::And}, {LogicalOperator::Or, JitExpressionType::Or}};
 
-bool count_node(const std::shared_ptr<AbstractLQPNode>& node) {
+bool requires_computation(const std::shared_ptr<AbstractLQPNode> &node) {
   // do not count trivial projections without computations
   if (const auto projection_node = std::dynamic_pointer_cast<ProjectionNode>(node)) {
     for (const auto& expression : projection_node->expressions) {
@@ -92,7 +92,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
 
   auto input_nodes = std::unordered_set<std::shared_ptr<AbstractLQPNode>>{};
 
-  bool has_validate = false;
+  bool use_validate = false;
   bool validate_after_filter = false;
   bool allow_aggregate = true;
 
@@ -100,10 +100,10 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
   _visit(node, [&](auto& current_node) {
     const auto is_root_node = current_node == node;
     if (_node_is_jittable(current_node, use_value_id, allow_aggregate, is_root_node)) {
-      has_validate |= current_node->type == LQPNodeType::Validate;
-      validate_after_filter |= has_validate && current_node->type == LQPNodeType::Predicate;
+      use_validate |= current_node->type == LQPNodeType::Validate;
+      validate_after_filter |= use_validate && current_node->type == LQPNodeType::Predicate;
       allow_aggregate &= current_node->type == LQPNodeType::Limit;
-      if (count_node(current_node)) ++jittable_node_count;
+      if (requires_computation(current_node)) ++jittable_node_count;
       return true;
     } else {
       input_nodes.insert(current_node);
@@ -131,7 +131,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
   const auto jit_operator = std::make_shared<JitOperatorWrapper>(translate_node(input_node));
   const auto row_count_expression =
       use_limit ? std::static_pointer_cast<LimitNode>(node)->num_rows_expression : nullptr;
-  const auto read_tuples = std::make_shared<JitReadTuples>(has_validate, row_count_expression);
+  const auto read_tuples = std::make_shared<JitReadTuples>(use_validate, row_count_expression);
   jit_operator->add_jit_operator(read_tuples);
 
   // "filter_node". The root node of the subplan computed by a JitFilter.
@@ -141,7 +141,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
     filter_node = filter_node->left_input();
   }
 
-  if (has_validate && !validate_after_filter) jit_operator->add_jit_operator(std::make_shared<JitValidate>());
+  if (use_validate && !validate_after_filter) jit_operator->add_jit_operator(std::make_shared<JitValidate>());
 
   // If we can reach the input node without encountering a UnionNode or PredicateNode,
   // there is no need to filter any tuples
@@ -168,7 +168,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
     jit_operator->add_jit_operator(std::make_shared<JitFilter>(jit_boolean_expression->result()));
   }
 
-  if (has_validate && validate_after_filter) jit_operator->add_jit_operator(std::make_shared<JitValidate>());
+  if (use_validate && validate_after_filter) jit_operator->add_jit_operator(std::make_shared<JitValidate>());
 
   if (last_node->type == LQPNodeType::Aggregate) {
     // Since aggregate nodes cause materialization, there is at most one JitAggregate operator in each operator chain

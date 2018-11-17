@@ -16,26 +16,26 @@
 #include "sql/sql_pipeline_builder.hpp"
 #include "sql/sql_translator.hpp"
 #include "sql/sqlite_testrunner/sqlite_wrapper.hpp"
-#include "storage/chunk_encoder.hpp"
 #include "storage/storage_manager.hpp"
 
 #include "tpch/tpch_db_generator.hpp"
-#include "tpch/tpch_queries.hpp"
+#include "tpch/tpch_query_generator.hpp"
 
 using namespace std::string_literals;  // NOLINT
 
 namespace opossum {
 
-using TestConfiguration = std::pair<const char*, bool>;
+using TestConfiguration = std::pair<QueryID, bool>;  // query_idx, use_jit
 
-class TPCHTest : public BaseTestWithParam<std::pair<const size_t, TestConfiguration>> {
+class TPCHTest : public BaseTestWithParam<TestConfiguration> {
  public:
-  static std::multimap<size_t, TestConfiguration> build_combinations() {
-    std::multimap<size_t, TestConfiguration> combinations;
-    for (auto it = tpch_queries.cbegin(); it != tpch_queries.cend(); ++it) {
-      combinations.emplace(it->first, TestConfiguration{it->second, false});
+  static std::vector<TestConfiguration> build_combinations() {
+    std::vector<TestConfiguration> combinations;
+    const auto selected_queries = TPCHQueryGenerator{}.selected_queries();
+    for (const auto query_id : selected_queries) {
+      combinations.emplace_back(query_id, false);
       if constexpr (HYRISE_JIT_SUPPORT) {
-        combinations.emplace(it->first, TestConfiguration{it->second, true});
+        combinations.emplace_back(query_id, true);
       }
     }
     return combinations;
@@ -61,22 +61,22 @@ class TPCHTest : public BaseTestWithParam<std::pair<const size_t, TestConfigurat
 };
 
 TEST_P(TPCHTest, TPCHQueryTest) {
-  const auto [query_idx, test_configuration] = GetParam();  // NOLINT
-  const auto [query, use_jit] = test_configuration;         // NOLINT
+  const auto [query_idx, use_jit] = GetParam();  // NOLINT
+  const auto tpch_idx = query_idx + 1;
+  const auto query = TPCHQueryGenerator{}.build_query(query_idx);
 
   /**
    * Generate the TPC-H tables with a scale factor appropriate for this query
    */
-  const auto scale_factor = scale_factor_by_query.at(query_idx);
+  const auto scale_factor = scale_factor_by_query.at(tpch_idx);
 
   TpchDbGenerator{scale_factor, 10'000}.generate_and_store();
   for (const auto& tpch_table_name : tpch_table_names) {
     const auto table = StorageManager::get().get_table(tpch_table_name);
-    ChunkEncoder::encode_all_chunks(table);
     _sqlite_wrapper->create_table(*table, tpch_table_name);
   }
 
-  SCOPED_TRACE("TPC-H " + std::to_string(query_idx) + (use_jit ? " with JIT" : " without JIT"));
+  SCOPED_TRACE("TPC-H " + std::to_string(tpch_idx) + (use_jit ? " with JIT" : " without JIT"));
 
   std::shared_ptr<const Table> sqlite_result_table, hyrise_result_table;
 
@@ -84,7 +84,7 @@ TEST_P(TPCHTest, TPCHQueryTest) {
   if (use_jit) {
     // TPCH query 13 can currently not be run with Jit Operators because of wrong output column definitions for outer
     // Joins. See: Issue #1051 (https://github.com/hyrise/hyrise/issues/1051)
-    if (query_idx == 13) {
+    if (tpch_idx == 13) {
       std::cerr << "Test of TPCH query 13 with JIT is currently disabled (Issue #1051)" << std::endl;
       return;
     }
@@ -95,7 +95,7 @@ TEST_P(TPCHTest, TPCHQueryTest) {
   auto sql_pipeline = SQLPipelineBuilder{query}.with_lqp_translator(lqp_translator).disable_mvcc().create_pipeline();
 
   // TPC-H 15 needs special patching as it contains a DROP VIEW that doesn't return a table as last statement
-  if (query_idx == 15) {
+  if (tpch_idx == 15) {
     Assert(sql_pipeline.statement_count() == 3u, "Expected 3 statements in TPC-H 15") sql_pipeline.get_result_table();
 
     hyrise_result_table = sql_pipeline.get_result_tables()[1];

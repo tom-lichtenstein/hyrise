@@ -104,32 +104,16 @@ void JitOperatorWrapper::_prepare() {
   _choose_execute_func();
 }
 
-namespace {
-
-TableType input_table_type(const std::shared_ptr<const AbstractOperator>& node) {
-  if (const auto in_table = node->get_output()) {
-    return in_table->type();
-  }
-  switch (node->type()) {
-    case OperatorType::TableWrapper:
-    case OperatorType::GetTable:
-    case OperatorType::Aggregate:
-      return TableType::Data;
-    default:
-      return TableType::References;
-  }
-}
-
-}  // namespace
-
 
 void JitOperatorWrapper::_choose_execute_func() {
   std::lock_guard<std::mutex> guard(_specialize_mutex);
   if (_execute_func) return;
 
+  const auto in_table = input_left()->get_output();
+
   for (auto& jit_operator : _jit_operators) {
     if (auto jit_validate = std::dynamic_pointer_cast<JitValidate>(jit_operator)) {
-      jit_validate->set_input_table_type(input_table_type(input_left()));
+      jit_validate->set_input_table_type(in_table->type());
     }
   }
 
@@ -190,7 +174,6 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
 std::shared_ptr<AbstractOperator> JitOperatorWrapper::_on_deep_copy(
     const std::shared_ptr<AbstractOperator>& copied_input_left,
     const std::shared_ptr<AbstractOperator>& copied_input_right) const {
-  if (Global::get().deep_copy_exists) const_cast<JitOperatorWrapper*>(this)->_choose_execute_func();
   return std::make_shared<JitOperatorWrapper>(copied_input_left, _execution_mode, _jit_operators, false,
                                               Global::get().deep_copy_exists ? _execute_func : nullptr);
 }

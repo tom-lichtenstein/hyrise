@@ -56,14 +56,14 @@ void JitReadTuples::before_query(const Table& in_table, const std::vector<AllTyp
       tuple_value.set_is_null(true, context);
     } else {
       resolve_data_type(data_type, [&](auto type) {
-        using DataType = typename decltype(type)::type;
-        tuple_value.set<DataType>(boost::get<DataType>(value), context);
+        using TupleDataType = typename decltype(type)::type;
+        tuple_value.set<TupleDataType>(boost::get<TupleDataType>(value), context);
         if (tuple_value.is_nullable()) {
           tuple_value.set_is_null(variant_is_null(value), context);
         }
         // Non-jit operators store bool values as int values
-        if constexpr (std::is_same_v<DataType, Bool>) {
-          tuple_value.set<bool>(boost::get<DataType>(value), context);
+        if constexpr (std::is_same_v<TupleDataType, Bool>) {
+          tuple_value.set<bool>(boost::get<TupleDataType>(value), context);
         }
       });
     }
@@ -89,23 +89,6 @@ void JitReadTuples::before_chunk(const Table& in_table, const ChunkID chunk_id,
   context.chunk_offset = 0;
   context.chunk_size = in_chunk.size();
   context.chunk_id = chunk_id;
-  if (_has_validate) {
-    if (in_chunk.has_mvcc_data()) {
-      // materialize atomic transaction ids as specialization cannot handle atomics
-      context.row_tids.resize(in_chunk.mvcc_data()->tids.size());
-      auto itr = context.row_tids.begin();
-      for (const auto& tid : in_chunk.mvcc_data()->tids) {
-        *itr++ = tid.load();
-      }
-      context.mvcc_data = in_chunk.mvcc_data();
-    } else {
-      DebugAssert(in_chunk.references_exactly_one_table(),
-                  "Input to Validate contains a Chunk referencing more than one table.");
-      const auto& ref_col_in = std::dynamic_pointer_cast<const ReferenceSegment>(in_chunk.get_segment(ColumnID{0}));
-      context.referenced_table = ref_col_in->referenced_table();
-      context.pos_list = ref_col_in->pos_list();
-    }
-  }
 
   if (_has_validate) {
     if (in_chunk.has_mvcc_data()) {
@@ -115,6 +98,9 @@ void JitReadTuples::before_chunk(const Table& in_table, const ChunkID chunk_id,
       for (const auto& tid : in_chunk.mvcc_data()->tids) {
         *itr++ = tid.load();
       }
+      // Lock MVCC data before accessing it.
+      context.mvcc_data_lock =
+          std::make_unique<SharedScopedLockingPtr<const MvccData>>(in_chunk.get_scoped_mvcc_data_lock());
       context.mvcc_data = in_chunk.mvcc_data();
     } else {
       DebugAssert(in_chunk.references_exactly_one_table(),
