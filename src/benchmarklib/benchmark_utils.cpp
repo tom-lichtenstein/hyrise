@@ -49,19 +49,11 @@ bool BenchmarkState::keep_running() {
   }
 
   benchmark_duration = std::chrono::high_resolution_clock::now() - benchmark_begin;
-  // ensure that the min numbers are reached
-  if (num_iterations >= min_num_iterations && benchmark_duration >= min_duration) {
-    // Stop execution if we reached the maximum number of iterations
-    if (num_iterations >= max_num_iterations) {
-      set_done();
-      return false;
-    }
 
-    // Stop execution if we reached the time limit
-    if (benchmark_duration >= max_duration) {
-      set_done();
-      return false;
-    }
+  // Stop execution if we reached the time limit
+  if (benchmark_duration >= max_duration) {
+    set_done();
+    return false;
   }
 
   return true;
