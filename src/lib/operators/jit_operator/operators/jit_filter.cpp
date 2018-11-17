@@ -26,12 +26,13 @@ std::string JitFilter::description() const {
 JitTupleValue JitFilter::condition() { return _condition; }
 
 void JitFilter::_consume(JitRuntimeContext& context) const {
-  if (_expression) {
+  // if (_expression) {
     if (_expression->compute_and_get<bool>(context).value) {
       _emit(context);
     }
     return;
-  }
+  // }
+  /*
   if (!_condition.is_null(context) && _condition.get<bool>(context)) {
     _emit(context);
   } else {
@@ -39,6 +40,7 @@ void JitFilter::_consume(JitRuntimeContext& context) const {
     _end(context);
 #endif
   }
+  */
 }
 
 std::map<size_t, bool> JitFilter::accessed_column_ids() const {
