@@ -218,34 +218,41 @@ std::set<std::string> lqp_find_modified_tables(const std::shared_ptr<AbstractLQP
 
   return modified_tables;
 }
+
+namespace {
+
 std::shared_ptr<AbstractExpression> lqp_subplan_to_boolean_expression(
         const std::shared_ptr<AbstractLQPNode>& lqp,
-        const std::function<bool(const std::shared_ptr<AbstractLQPNode>& lqp)>& node_is_allowed) {
+        const std::function<bool(const std::shared_ptr<AbstractLQPNode>& lqp)>& node_is_allowed,
+        std::shared_ptr<AbstractExpression> parent) {
   if (!node_is_allowed(lqp)) return nullptr;
   static const auto whitelist =
       std::set<LQPNodeType>{LQPNodeType::Projection, LQPNodeType::Sort, LQPNodeType::Validate};
 
-  if (whitelist.count(lqp->type)) return lqp_subplan_to_boolean_expression(lqp->left_input(), node_is_allowed);
+  if (whitelist.count(lqp->type)) return lqp_subplan_to_boolean_expression(lqp->left_input(), node_is_allowed, parent);
 
   switch (lqp->type) {
     case LQPNodeType::Predicate: {
       const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(lqp);
-      const auto left_input_expression = lqp_subplan_to_boolean_expression(lqp->left_input(), node_is_allowed);
+      auto expression = parent ? and_(predicate_node->predicate, parent) : predicate_node->predicate;
+      const auto left_input_expression = lqp_subplan_to_boolean_expression(lqp->left_input(), node_is_allowed, expression);
       if (left_input_expression) {
-        // swap left and right for JIT
-        return and_(left_input_expression, predicate_node->predicate);
+        return left_input_expression;
       } else {
-        return predicate_node->predicate;
+        return expression;
       }
     }
 
     case LQPNodeType::Union: {
       const auto union_node = std::dynamic_pointer_cast<UnionNode>(lqp);
-      const auto left_input_expression = lqp_subplan_to_boolean_expression(lqp->left_input(), node_is_allowed);
-      const auto right_input_expression = lqp_subplan_to_boolean_expression(lqp->right_input(), node_is_allowed);
+      const auto left_input_expression = lqp_subplan_to_boolean_expression(lqp->left_input(), node_is_allowed, nullptr);
+      const auto right_input_expression = lqp_subplan_to_boolean_expression(lqp->right_input(), node_is_allowed, nullptr);
       if (left_input_expression && right_input_expression) {
-        // swap left and right for JIT
-        return or_(right_input_expression, left_input_expression);
+        auto or_expression = or_(left_input_expression, right_input_expression);
+        if (parent) {
+          return and_(or_expression, parent);
+        }
+        return or_expression;
       } else {
         return nullptr;
       }
@@ -258,6 +265,14 @@ std::shared_ptr<AbstractExpression> lqp_subplan_to_boolean_expression(
     default:
       return nullptr;
   }
+}
+
+}  // namespace
+
+std::shared_ptr<AbstractExpression> lqp_subplan_to_boolean_expression(
+        const std::shared_ptr<AbstractLQPNode>& lqp,
+        const std::function<bool(const std::shared_ptr<AbstractLQPNode>& lqp)>& node_is_allowed) {
+  return lqp_subplan_to_boolean_expression(lqp, node_is_allowed, nullptr);
 }
 
 std::vector<std::shared_ptr<AbstractLQPNode>> lqp_find_subplan_roots(const std::shared_ptr<AbstractLQPNode>& lqp) {

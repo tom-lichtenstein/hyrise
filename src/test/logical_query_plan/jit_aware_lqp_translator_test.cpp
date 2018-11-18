@@ -177,12 +177,12 @@ TEST_F(JitAwareLQPTranslatorTest, LiteralValuesAreAddedToJitReadTupleAdapter) {
   const auto input_literals = jit_read_tuples->input_literals();
   ASSERT_EQ(input_literals.size(), 2u);
 
-  ASSERT_EQ(input_literals[0].value, AllTypeVariant(1));
-  ASSERT_EQ(input_literals[0].tuple_value.data_type(), DataType::Int);
+  ASSERT_EQ(input_literals[0].value, AllTypeVariant(1.2f));
+  ASSERT_EQ(input_literals[0].tuple_value.data_type(), DataType::Float);
   ASSERT_EQ(input_literals[0].tuple_value.is_nullable(), false);
 
-  ASSERT_EQ(input_literals[1].value, AllTypeVariant(1.2f));
-  ASSERT_EQ(input_literals[1].tuple_value.data_type(), DataType::Float);
+  ASSERT_EQ(input_literals[1].value, AllTypeVariant(1));
+  ASSERT_EQ(input_literals[1].tuple_value.data_type(), DataType::Int);
   ASSERT_EQ(input_literals[1].tuple_value.is_nullable(), false);
 }
 
@@ -284,8 +284,8 @@ TEST_F(JitAwareLQPTranslatorTest, ConsecutivePredicatesGetTransformedToConjuncti
   ASSERT_EQ(expression->right_child()->expression_type(), JitExpressionType::And);
 
   const auto b_gt_c = expression->right_child()->left_child();
-  const auto c_gt_a = expression->right_child()->right_child();
-  const auto a_gt_b = expression->left_child();
+  const auto c_gt_a = expression->left_child();
+  const auto a_gt_b = expression->right_child()->right_child();
 
   ASSERT_EQ(a_gt_b->expression_type(), JitExpressionType::GreaterThan);
   ASSERT_EQ(a_gt_b->left_child()->expression_type(), JitExpressionType::Column);
@@ -437,14 +437,14 @@ TEST_F(JitAwareLQPTranslatorTest, AMoreComplexQuery) {
   const auto expression_1 = jit_compute_1->expression();
   ASSERT_EQ(expression_1->expression_type(), JitExpressionType::And);
 
-  const auto a_lte_b = expression_1->left_child();
+  const auto a_lte_b = expression_1->right_child();
   ASSERT_EQ(a_lte_b->expression_type(), JitExpressionType::LessThanEquals);
   ASSERT_EQ(a_lte_b->left_child()->expression_type(), JitExpressionType::Column);
   ASSERT_EQ(a_lte_b->right_child()->expression_type(), JitExpressionType::Column);
   ASSERT_EQ(jit_read_tuples->find_input_column(a_lte_b->left_child()->result()), ColumnID{0});
   ASSERT_EQ(jit_read_tuples->find_input_column(a_lte_b->right_child()->result()), ColumnID{1});
 
-  const auto b_gt_a_plus_c = expression_1->right_child();
+  const auto b_gt_a_plus_c = expression_1->left_child();
   ASSERT_EQ(b_gt_a_plus_c->expression_type(), JitExpressionType::GreaterThan);
   ASSERT_EQ(b_gt_a_plus_c->left_child()->expression_type(), JitExpressionType::Column);
   ASSERT_EQ(jit_read_tuples->find_input_column(b_gt_a_plus_c->left_child()->result()), ColumnID{1});
