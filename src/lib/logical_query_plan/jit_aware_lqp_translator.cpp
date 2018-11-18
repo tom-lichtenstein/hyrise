@@ -292,6 +292,7 @@ bool can_translate_predicate_to_predicate_value_id_expression(const AbstractExpr
   // value ids can only be used in compare expressions
   switch (predicate_expression->predicate_condition) {
     case PredicateCondition::In:
+    case PredicateCondition::NotIn:
     case PredicateCondition::Like:
     case PredicateCondition::NotLike:
       return false;
@@ -449,6 +450,7 @@ bool _expressions_are_jittable(const std::vector<std::shared_ptr<AbstractExpress
         const auto predicate_expression = std::static_pointer_cast<AbstractPredicateExpression>(expression);
         switch (predicate_expression->predicate_condition) {
           case PredicateCondition::In:
+          case PredicateCondition::NotIn:
           case PredicateCondition::Like:
           case PredicateCondition::NotLike:
             return false;
