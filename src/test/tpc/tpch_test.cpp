@@ -192,6 +192,9 @@ TEST_P(TPCHTest, TPCHQueryTest) {
 
   std::shared_ptr<const Table> sqlite_result_table, hyrise_result_table;
 
+  auto& global = opossum::Global::get();
+  global.jit = use_jit;
+
   std::shared_ptr<LQPTranslator> lqp_translator;
   if (use_jit) {
     // TPCH query 13 can currently not be run with Jit Operators because of wrong output column definitions for outer
@@ -204,7 +207,7 @@ TEST_P(TPCHTest, TPCHQueryTest) {
   } else {
     lqp_translator = std::make_shared<LQPTranslator>();
   }
-  auto sql_pipeline = SQLPipelineBuilder{query}.with_lqp_translator(lqp_translator).disable_mvcc().create_pipeline();
+  auto sql_pipeline = SQLPipelineBuilder{query}.with_lqp_translator(lqp_translator).create_pipeline();
 
   // TPC-H 15 needs special patching as it contains a DROP VIEW that doesn't return a table as last statement
   if (tpch_idx == 15) {
@@ -226,6 +229,8 @@ TEST_P(TPCHTest, TPCHQueryTest) {
 
   EXPECT_TABLE_EQ(hyrise_result_table, sqlite_result_table, OrderSensitivity::No, TypeCmpMode::Lenient,
                   FloatComparisonMode::RelativeDifference);
+
+  global.jit = false;
 }
 
 INSTANTIATE_TEST_CASE_P(TPCHTestInstances, TPCHTest, ::testing::ValuesIn(TPCHTest::build_combinations()), );  // NOLINT

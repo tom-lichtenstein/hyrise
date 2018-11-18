@@ -78,14 +78,14 @@ bool requires_computation(const std::shared_ptr<AbstractLQPNode> &node) {
   }
   return true;
 }
-static constexpr bool use_strings_in_jit = true;
+static constexpr bool disable_use_string_comp_by_value_in_jit = false;
 }  // namespace
 
 namespace opossum {
 
 std::shared_ptr<AbstractOperator> JitAwareLQPTranslator::translate_node(
     const std::shared_ptr<AbstractLQPNode>& node) const {
-  const auto jit_operator = _try_translate_sub_plan_to_jit_operators(node, use_strings_in_jit);
+  const auto jit_operator = _try_translate_sub_plan_to_jit_operators(node, disable_use_string_comp_by_value_in_jit);
   return jit_operator ? jit_operator : LQPTranslator::translate_node(node);
 }
 
@@ -381,7 +381,7 @@ std::shared_ptr<const JitExpression> JitAwareLQPTranslator::_try_translate_expre
         if (!jit_expression) return nullptr;
         jit_expression_arguments.emplace_back(jit_expression);
 
-        if constexpr (use_strings_in_jit) {
+        if constexpr (disable_use_string_comp_by_value_in_jit) {
           if (!use_value_id && jit_expression->result().data_type() == DataType::String) {
             return nullptr;  // string not supported without value ids
           }
@@ -461,7 +461,7 @@ bool _expressions_are_jittable(const std::vector<std::shared_ptr<AbstractExpress
       case ExpressionType::Logical:
         return _expressions_are_jittable(expression->arguments, allow_string);
       case ExpressionType::Value: {
-        if constexpr (use_strings_in_jit) {
+        if constexpr (disable_use_string_comp_by_value_in_jit) {
           const auto value_expression = std::static_pointer_cast<const ValueExpression>(expression);
           if (!allow_string && data_type_from_all_type_variant(value_expression->value) == DataType::String) {
             return false;
@@ -478,7 +478,7 @@ bool _expressions_are_jittable(const std::vector<std::shared_ptr<AbstractExpress
         break;
       }
       case ExpressionType::LQPColumn: {
-        if constexpr (use_strings_in_jit) {
+        if constexpr (disable_use_string_comp_by_value_in_jit) {
           const auto column = std::dynamic_pointer_cast<const LQPColumnExpression>(expression);
           // Filter or computation on string columns is expensive
           if (!allow_string && column->data_type() == DataType::String) return false;

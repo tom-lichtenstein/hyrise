@@ -48,9 +48,9 @@ int main(int argc, char* argv[]) {
   cli_options.add_options()
     ("s,scale", "Database scale factor (1.0 ~ 1GB)", cxxopts::value<float>()->default_value("0.1"))
     ("jit", "Enable jit", cxxopts::value<bool>()->default_value("false"))
-    ("lazy_load", "Enable lazy load in jit", cxxopts::value<bool>()->default_value("false"))
+    ("lazy_load", "Enable lazy load in jit", cxxopts::value<bool>()->default_value("true"))
     ("interpret", "Interpret jit codde", cxxopts::value<bool>()->default_value("false"))
-    ("jit_validate", "Use jit validate", cxxopts::value<bool>()->default_value("false"))
+    ("jit_validate", "Use jit validate", cxxopts::value<bool>()->default_value("true"))
     ("q,queries", "Specify queries to run (comma-separated query ids, e.g. \"--queries 1,3,19\"), default is all", cxxopts::value<std::string>()); // NOLINT
   // clang-format on
 
@@ -70,11 +70,10 @@ int main(int argc, char* argv[]) {
     const auto json_config = opossum::CLIConfigParser::parse_json_config_file(argv[1]);
     scale_factor = json_config.value("scale", 0.1f);
 
-    query_ids = json_config.value("queries", std::vector<opossum::QueryID>());
     jit = json_config.value("jit", false);
-    lazy_load = json_config.value("lazy_load", false);
+    lazy_load = json_config.value("lazy_load", true);
     interpret = json_config.value("interpret", false);
-    jit_validate = json_config.value("jit_validate", false);
+    jit_validate = json_config.value("jit_validate", true);
 
     comma_separated_queries = json_config.value("queries", std::string(""));
 

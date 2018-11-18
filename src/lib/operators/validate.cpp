@@ -35,13 +35,13 @@ bool Validate::is_row_visible(CommitID our_tid, CommitID snapshot_commit_id, con
 }
 
 Validate::Validate(const std::shared_ptr<AbstractOperator>& in)
-    : AbstractReadOnlyOperator(OperatorType::Validate, in) {}
+        : AbstractReadOnlyOperator(OperatorType::Validate, in) {}
 
 const std::string Validate::name() const { return "Validate"; }
 
 std::shared_ptr<AbstractOperator> Validate::_on_deep_copy(
-    const std::shared_ptr<AbstractOperator>& copied_input_left,
-    const std::shared_ptr<AbstractOperator>& copied_input_right) const {
+        const std::shared_ptr<AbstractOperator>& copied_input_left,
+        const std::shared_ptr<AbstractOperator>& copied_input_right) const {
   return std::make_shared<Validate>(copied_input_left);
 }
 
@@ -78,22 +78,23 @@ std::shared_ptr<const Table> Validate::_on_execute(std::shared_ptr<TransactionCo
       DebugAssert(referenced_table->has_mvcc(), "Trying to use Validate on a table that has no MVCC data");
 
       const auto& pos_list_in = *ref_segment_in->pos_list();
-      if (pos_list_in.references_single_chunk()) {
+      if (pos_list_in.references_single_chunk() && !pos_list_in.empty()) {
+        // Fast path - we are looking at a single referenced chunk and thus need to get the MVCC data vector only once
+
         pos_list_out->guarantee_single_chunk();
 
-        if (!pos_list_in.empty()) {
-          const auto referenced_chunk = referenced_table->get_chunk(pos_list_in.front().chunk_id);
+        const auto referenced_chunk = referenced_table->get_chunk(pos_list_in.common_chunk_id());
+        auto mvcc_data = referenced_chunk->get_scoped_mvcc_data_lock();
 
-          auto mvcc_data = referenced_chunk->get_scoped_mvcc_data_lock();
-
-          for (auto row_id : pos_list_in) {
-            if (opossum::is_row_visible(our_tid, snapshot_commit_id, row_id.chunk_offset, *mvcc_data)) {
-              pos_list_out->emplace_back(row_id);
-            }
+        for (auto row_id : pos_list_in) {
+          if (opossum::is_row_visible(our_tid, snapshot_commit_id, row_id.chunk_offset, *mvcc_data)) {
+            pos_list_out->emplace_back(row_id);
           }
         }
 
       } else {
+        // Slow path - we are looking at multiple referenced chunks and need to get the MVCC data vector for every row
+
         for (auto row_id : pos_list_in) {
           const auto referenced_chunk = referenced_table->get_chunk(row_id.chunk_id);
 
@@ -108,7 +109,7 @@ std::shared_ptr<const Table> Validate::_on_execute(std::shared_ptr<TransactionCo
       // Construct the actual ReferenceSegment objects and add them to the chunk.
       for (ColumnID column_id{0}; column_id < chunk_in->column_count(); ++column_id) {
         const auto reference_segment =
-            std::static_pointer_cast<const ReferenceSegment>(chunk_in->get_segment(column_id));
+                std::static_pointer_cast<const ReferenceSegment>(chunk_in->get_segment(column_id));
         const auto referenced_column_id = reference_segment->referenced_column_id();
         auto ref_segment_out = std::make_shared<ReferenceSegment>(referenced_table, referenced_column_id, pos_list_out);
         output_segments.push_back(ref_segment_out);
