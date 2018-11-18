@@ -175,10 +175,19 @@ void AbstractOperator::execute() {
   if (Global::get().use_times) {
     auto find = Global::get().times.find(_type);
     if (find != Global::get().times.end()) {
-      find->second.preparation_time += preparation_time;
-      find->second.execution_time += _performance_data->walltime;
+      if (Global::get().deep_copy_exists) {
+        find->second.__preparation_time += preparation_time;
+        find->second.__execution_time += _performance_data->walltime;
+      } else {
+        find->second.preparation_time += preparation_time;
+        find->second.execution_time += _performance_data->walltime;
+      }
     } else {
-      Global::get().times.emplace(_type, OperatorTimes{preparation_time, _performance_data->walltime});
+      if (Global::get().deep_copy_exists) {
+        Global::get().times.emplace(_type, OperatorTimes{std::chrono::microseconds{0}, std::chrono::microseconds{0}, preparation_time, _performance_data->walltime});
+      } else {
+        Global::get().times.emplace(_type, OperatorTimes{preparation_time, _performance_data->walltime, std::chrono::microseconds{0}, std::chrono::microseconds{0}});
+      };
     }
   }
 

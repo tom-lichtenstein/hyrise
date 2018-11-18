@@ -363,7 +363,9 @@ void BenchmarkRunner::_create_report(std::ostream& stream) const {
           {"name", operator_type_to_string.at(pair.first)},
           {"preparation_time", static_cast<size_t>(pair.second.preparation_time.count() / query_result.num_iterations)},
           {"execution_time", static_cast<size_t>(pair.second.execution_time.count() / query_result.num_iterations)},
-          {"time_unit", "micro s"},
+          {"__preparation_time", static_cast<size_t>(pair.second.__preparation_time.count() / query_result.num_iterations)},
+          {"__execution_time", static_cast<size_t>(pair.second.__execution_time.count() / query_result.num_iterations)},
+          {"time_unit", "micro s"}
       });
     }
 

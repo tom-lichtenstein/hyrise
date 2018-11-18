@@ -856,10 +856,14 @@ std::vector<std::shared_ptr<const Table>> ExpressionEvaluator::_evaluate_select_
       const auto table_iter = _uncorrelated_select_results->find(expression.pqp);
       DebugAssert(table_iter != _uncorrelated_select_results->cend(),
                   "All uncorrelated PQPSelectExpression should be cached, if cache is present");
+
+      Global::get().deep_copy_exists = false;
       return {table_iter->second};
     } else {
       // If a select is uncorrelated, it has the same result for all rows, so we just execute it for the first row
-      return {_evaluate_select_expression_for_row(expression, ChunkOffset{0})};
+      const auto result = _evaluate_select_expression_for_row(expression, ChunkOffset{0});
+      Global::get().deep_copy_exists = false;
+      return {result};
     }
   }
 

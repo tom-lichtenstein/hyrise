@@ -10,6 +10,8 @@ namespace opossum {
 struct OperatorTimes {
   std::chrono::microseconds preparation_time;
   std::chrono::microseconds execution_time;
+  std::chrono::microseconds __preparation_time;
+  std::chrono::microseconds __execution_time;
 };
 
 enum class OperatorType;
