@@ -847,6 +847,7 @@ std::shared_ptr<ExpressionResult<Result>> ExpressionEvaluator::_evaluate_select_
 
 std::vector<std::shared_ptr<const Table>> ExpressionEvaluator::_evaluate_select_expression_to_tables(
     const PQPSelectExpression& expression) {
+  const bool old_value = Global::get().deep_copy_exists;
   Global::get().deep_copy_exists = true;
 
   // If the SelectExpression is uncorrelated, evaluating it once is sufficient
@@ -857,12 +858,12 @@ std::vector<std::shared_ptr<const Table>> ExpressionEvaluator::_evaluate_select_
       DebugAssert(table_iter != _uncorrelated_select_results->cend(),
                   "All uncorrelated PQPSelectExpression should be cached, if cache is present");
 
-      Global::get().deep_copy_exists = false;
+      Global::get().deep_copy_exists = old_value;
       return {table_iter->second};
     } else {
       // If a select is uncorrelated, it has the same result for all rows, so we just execute it for the first row
       const auto result = _evaluate_select_expression_for_row(expression, ChunkOffset{0});
-      Global::get().deep_copy_exists = false;
+      Global::get().deep_copy_exists = old_value;
       return {result};
     }
   }
@@ -878,7 +879,7 @@ std::vector<std::shared_ptr<const Table>> ExpressionEvaluator::_evaluate_select_
     results[chunk_offset] = _evaluate_select_expression_for_row(expression, chunk_offset);
   }
 
-  Global::get().deep_copy_exists = false;
+  Global::get().deep_copy_exists = old_value;
 
   return results;
 }

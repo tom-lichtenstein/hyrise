@@ -232,7 +232,8 @@ std::shared_ptr<AbstractExpression> lqp_subplan_to_boolean_expression(
       const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(lqp);
       const auto left_input_expression = lqp_subplan_to_boolean_expression(lqp->left_input(), node_is_allowed);
       if (left_input_expression) {
-        return and_(predicate_node->predicate, left_input_expression);
+        // swap left and right for JIT
+        return and_(left_input_expression, predicate_node->predicate);
       } else {
         return predicate_node->predicate;
       }
@@ -243,7 +244,8 @@ std::shared_ptr<AbstractExpression> lqp_subplan_to_boolean_expression(
       const auto left_input_expression = lqp_subplan_to_boolean_expression(lqp->left_input(), node_is_allowed);
       const auto right_input_expression = lqp_subplan_to_boolean_expression(lqp->right_input(), node_is_allowed);
       if (left_input_expression && right_input_expression) {
-        return or_(left_input_expression, right_input_expression);
+        // swap left and right for JIT
+        return or_(right_input_expression, left_input_expression);
       } else {
         return nullptr;
       }
