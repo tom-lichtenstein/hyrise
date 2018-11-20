@@ -190,6 +190,8 @@ void BenchmarkRunner::_benchmark_individual_queries() {
     auto state = BenchmarkState{_config.min_num_query_runs, _config.max_num_query_runs, _config.min_duration,
                                 _config.max_duration};
 
+    Global::get().times.clear();
+
     while (state.keep_running() && result.num_iterations.load(std::memory_order_relaxed) < _config.max_num_query_runs) {
       // We want to only schedule as many queries simultaneously as we have simulated clients
       if (currently_running_clients.load(std::memory_order_relaxed) < _config.clients) {
