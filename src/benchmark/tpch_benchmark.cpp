@@ -51,6 +51,7 @@ int main(int argc, char* argv[]) {
     ("lazy_load", "Enable lazy load in jit", cxxopts::value<bool>()->default_value("true"))
     ("interpret", "Interpret jit codde", cxxopts::value<bool>()->default_value("false"))
     ("jit_validate", "Use jit validate", cxxopts::value<bool>()->default_value("true"))
+    ("disable_string_compare", "disable string compare in jit", cxxopts::value<bool>()->default_value("false"))
     ("q,queries", "Specify queries to run (comma-separated query ids, e.g. \"--queries 1,3,19\"), default is all", cxxopts::value<std::string>()); // NOLINT
   // clang-format on
 
@@ -61,6 +62,7 @@ int main(int argc, char* argv[]) {
   bool& lazy_load = opossum::Global::get().lazy_load;
   bool& interpret = opossum::Global::get().interpret;
   bool& jit_validate = opossum::Global::get().jit_validate;
+  bool& disable_string_compare = opossum::Global::get().disable_string_compare;
   opossum::Global::get().use_times = true;
 
   std::vector<opossum::QueryID> query_ids;
@@ -74,6 +76,7 @@ int main(int argc, char* argv[]) {
     lazy_load = json_config.value("lazy_load", true);
     interpret = json_config.value("interpret", false);
     jit_validate = json_config.value("jit_validate", true);
+    disable_string_compare = json_config.value("disable_string_compare", false);
 
     comma_separated_queries = json_config.value("queries", std::string(""));
 
@@ -98,6 +101,7 @@ int main(int argc, char* argv[]) {
     lazy_load = cli_parse_result["lazy_load"].as<bool>();
     interpret = cli_parse_result["interpret"].as<bool>();
     jit_validate = cli_parse_result["jit_validate"].as<bool>();
+    disable_string_compare = cli_parse_result["disable_string_compare"].as<bool>();
 
     scale_factor = cli_parse_result["scale"].as<float>();
 
@@ -130,6 +134,7 @@ int main(int argc, char* argv[]) {
   config->out << "- Lazy load is " << bool_to_verb(lazy_load) << std::endl;
   config->out << "- Jit interpretation is " << bool_to_verb(interpret) << std::endl;
   config->out << "- Jit validate is " << bool_to_verb(jit_validate) << std::endl;
+  config->out << "- Jit string compare is " << bool_to_verb(!disable_string_compare) << std::endl;
 
   config->out << "- Benchmarking Queries: [ ";
   for (const auto query_id : query_ids) {
@@ -167,6 +172,7 @@ int main(int argc, char* argv[]) {
   context.emplace("lazy_load", bool_to_str(lazy_load));
   context.emplace("interpret", bool_to_str(interpret));
   context.emplace("jit_validate", bool_to_str(jit_validate));
+  context.emplace("disable_string_compare", bool_to_str(disable_string_compare));
 
   // Run the benchmark
   opossum::BenchmarkRunner(*config, std::make_unique<opossum::TPCHQueryGenerator>(query_ids), context).run();

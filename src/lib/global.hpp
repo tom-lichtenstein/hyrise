@@ -24,6 +24,7 @@ struct Global : public Singleton<Global> {
   bool jit_evaluate = false;
   bool interpret = false;
   bool use_times = false;
+  bool disable_string_compare = false;
   std::map<OperatorType, OperatorTimes> times;
 
  private:
