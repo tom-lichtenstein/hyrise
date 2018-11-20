@@ -71,6 +71,11 @@ void AbstractOperator::execute() {
   DebugAssert(!_input_right || _input_right->get_output(), "Right input has not yet been executed");
   DebugAssert(!_output, "Operator has already been executed");
 
+  const bool old_deep_copy_exists = Global::get().deep_copy_exists;
+  if (_type != OperatorType::JitOperatorWrapper) {
+    Global::get().deep_copy_exists = true;
+  }
+
   auto& result = JitEvaluationHelper::get().result();
 
 #if PAPI_SUPPORT
@@ -108,7 +113,7 @@ void AbstractOperator::execute() {
   const auto preparation_time = performance_timer.lap();
 
   if (Global::get().jit_evaluate) {
-    std::string name_prefix = Global::get().deep_copy_exists ? "__" : "";
+    std::string name_prefix = old_deep_copy_exists ? "__" : "";
     nlohmann::json op = {{"name", name_prefix + name()}, {"prepare", true}, {"walltime", preparation_time.count()}};
 #if PAPI_SUPPORT
     for (uint32_t i = 0; i < num_counters; ++i) {
@@ -162,7 +167,7 @@ void AbstractOperator::execute() {
   _performance_data->walltime = performance_timer.lap();
 
   if (Global::get().jit_evaluate) {
-    std::string name_prefix = Global::get().deep_copy_exists ? "__" : "";
+    std::string name_prefix = old_deep_copy_exists ? "__" : "";
     nlohmann::json op2 = {{"name", name_prefix + name()}, {"prepare", false}, {"walltime", _performance_data->walltime.count()}};
 #if PAPI_SUPPORT
     for (uint32_t i = 0; i < num_counters; ++i) {
@@ -175,7 +180,7 @@ void AbstractOperator::execute() {
   if (Global::get().use_times) {
     auto find = Global::get().times.find(_type);
     if (find != Global::get().times.end()) {
-      if (Global::get().deep_copy_exists) {
+      if (old_deep_copy_exists) {
         find->second.__preparation_time += preparation_time;
         find->second.__execution_time += _performance_data->walltime;
       } else {
@@ -183,13 +188,15 @@ void AbstractOperator::execute() {
         find->second.execution_time += _performance_data->walltime;
       }
     } else {
-      if (Global::get().deep_copy_exists) {
+      if (old_deep_copy_exists) {
         Global::get().times.emplace(_type, OperatorTimes{std::chrono::microseconds{0}, std::chrono::microseconds{0}, preparation_time, _performance_data->walltime});
       } else {
         Global::get().times.emplace(_type, OperatorTimes{preparation_time, _performance_data->walltime, std::chrono::microseconds{0}, std::chrono::microseconds{0}});
       };
     }
   }
+
+  Global::get().deep_copy_exists = old_deep_copy_exists;
 
   DTRACE_PROBE5(HYRISE, OPERATOR_EXECUTED, name().c_str(), _performance_data->walltime.count(),
                 _output ? _output->row_count() : 0, _output ? _output->chunk_count() : 0,

@@ -25,12 +25,11 @@
 #include "expression/pqp_select_expression.hpp"
 #include "expression/value_expression.hpp"
 #include "expression_functors.hpp"
-#include "global.hpp"
 #include "like_matcher.hpp"
 #include "operators/abstract_operator.hpp"
 #include "resolve_type.hpp"
 #include "scheduler/current_scheduler.hpp"
-#include "sql/sql_query_plan.hpp"
+#include "scheduler/operator_task.hpp"
 #include "storage/materialize.hpp"
 #include "storage/value_segment.hpp"
 #include "utils/assert.hpp"
@@ -847,9 +846,6 @@ std::shared_ptr<ExpressionResult<Result>> ExpressionEvaluator::_evaluate_select_
 
 std::vector<std::shared_ptr<const Table>> ExpressionEvaluator::_evaluate_select_expression_to_tables(
     const PQPSelectExpression& expression) {
-  const bool old_value = Global::get().deep_copy_exists;
-  Global::get().deep_copy_exists = true;
-
   // If the SelectExpression is uncorrelated, evaluating it once is sufficient
   if (expression.parameters.empty()) {
     if (_uncorrelated_select_results) {
@@ -857,14 +853,10 @@ std::vector<std::shared_ptr<const Table>> ExpressionEvaluator::_evaluate_select_
       const auto table_iter = _uncorrelated_select_results->find(expression.pqp);
       DebugAssert(table_iter != _uncorrelated_select_results->cend(),
                   "All uncorrelated PQPSelectExpression should be cached, if cache is present");
-
-      Global::get().deep_copy_exists = old_value;
       return {table_iter->second};
     } else {
       // If a select is uncorrelated, it has the same result for all rows, so we just execute it for the first row
-      const auto result = _evaluate_select_expression_for_row(expression, ChunkOffset{0});
-      Global::get().deep_copy_exists = old_value;
-      return {result};
+      return {_evaluate_select_expression_for_row(expression, ChunkOffset{0})};
     }
   }
 
@@ -878,8 +870,6 @@ std::vector<std::shared_ptr<const Table>> ExpressionEvaluator::_evaluate_select_
   for (auto chunk_offset = ChunkOffset{0}; chunk_offset < _output_row_count; ++chunk_offset) {
     results[chunk_offset] = _evaluate_select_expression_for_row(expression, chunk_offset);
   }
-
-  Global::get().deep_copy_exists = old_value;
 
   return results;
 }
@@ -936,9 +926,7 @@ std::shared_ptr<const Table> ExpressionEvaluator::_evaluate_select_expression_fo
   auto row_pqp = expression.pqp->deep_copy();
   row_pqp->set_parameters(parameters);
 
-  SQLQueryPlan query_plan{CleanupTemporaries::Yes};
-  query_plan.add_tree_by_root(row_pqp);
-  const auto tasks = query_plan.create_tasks();
+  const auto tasks = OperatorTask::make_tasks_from_operator(row_pqp, CleanupTemporaries::Yes);
   CurrentScheduler::schedule_and_wait_for_tasks(tasks);
 
   return row_pqp->get_output();
