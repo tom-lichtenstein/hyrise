@@ -18,10 +18,12 @@
 
 namespace opossum {
 
-JitReadTuples::JitReadTuples(const bool has_validate, const std::shared_ptr<AbstractExpression>& row_count_expression)
+JitReadTuples::JitReadTuples(const bool has_validate, const std::shared_ptr<AbstractExpression>& row_count_expression,
+                             const bool use_load_atomic)
     : AbstractJittable(JitOperatorType::Read),
     _has_validate(has_validate),
-    _row_count_expression(row_count_expression) {
+    _row_count_expression(row_count_expression),
+    _use_load_atomic(use_load_atomic) {
   BOOST_PP_SEQ_FOR_EACH(ADD_DATA_TYPE_TO_MAP, _, JIT_DATA_TYPE_INFO)
 }
 
@@ -178,10 +180,12 @@ bool JitReadTuples::before_chunk(const Table& in_table, const ChunkID chunk_id,
   if (_has_validate) {
     if (in_chunk.has_mvcc_data()) {
       // materialize atomic transaction ids as specialization cannot handle atomics
-      context.row_tids.resize(in_chunk.mvcc_data()->tids.size());
-      auto itr = context.row_tids.begin();
-      for (const auto& tid : in_chunk.mvcc_data()->tids) {
-        *itr++ = tid.load();
+      if (!_use_load_atomic) {
+        context.row_tids.resize(in_chunk.mvcc_data()->tids.size());
+        auto itr = context.row_tids.begin();
+        for (const auto& tid : in_chunk.mvcc_data()->tids) {
+          *itr++ = tid.load();
+        }
       }
       // Lock MVCC data before accessing it.
       context.mvcc_data_lock =

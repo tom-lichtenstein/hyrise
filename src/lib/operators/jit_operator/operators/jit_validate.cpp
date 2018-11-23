@@ -16,12 +16,14 @@ bool is_row_visible(const CommitID our_tid, const TransactionID row_tid, const C
 
 }  // namespace
 
-JitValidate::JitValidate(const TableType input_table_type) : AbstractJittable(JitOperatorType::Validate),
-                                                             _input_table_type(input_table_type) {}
+JitValidate::JitValidate(const TableType input_table_type, const bool use_load_atomic) : AbstractJittable(JitOperatorType::Validate),
+                                                             _input_table_type(input_table_type), _use_load_atomic(use_load_atomic) {}
 
 std::string JitValidate::description() const { return "[Validate]"; }
 
 void JitValidate::set_input_table_type(const TableType input_table_type) { _input_table_type = input_table_type; }
+
+void JitValidate::set_use_load_atomic(const bool use_load_atomic) { _use_load_atomic = use_load_atomic; }
 
 void JitValidate::_consume(JitRuntimeContext& context) const {
   if (_input_table_type == TableType::References) {
@@ -33,7 +35,12 @@ void JitValidate::_consume(JitRuntimeContext& context) const {
       _emit(context);
     }
   } else {
-    const auto row_tid = context.row_tids[context.chunk_offset];
+    TransactionID row_tid;
+    if (_use_load_atomic) {
+      row_tid = _load_atomic_value(context.mvcc_data->tids[context.chunk_offset]);
+    } else {
+      row_tid = context.row_tids[context.chunk_offset];
+    }
     if (is_row_visible(context.transaction_id, row_tid, context.snapshot_commit_id, context.chunk_offset,
                        *context.mvcc_data)) {
       _emit(context);
