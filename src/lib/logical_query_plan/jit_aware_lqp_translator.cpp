@@ -125,14 +125,26 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
     return nullptr;
 
   if (jittable_node_count == 1 && has_predicate) {
+    // do not jit for single simple table scan
     auto current_node = node;
     while (current_node->type != LQPNodeType::Predicate) {
       current_node = current_node->left_input();
     }
     const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(current_node);
-    if (std::dynamic_pointer_cast<BinaryPredicateExpression>(predicate_node->predicate)) {
-      // do not jit for single table scan
-      return nullptr;
+    if (const auto predicate std::dynamic_pointer_cast<BinaryPredicateExpression>(predicate_node->predicate)) {
+      bool complex_expression = false;
+      for (const auto expression : predicate->arguments) {
+        switch (expression->type) {
+          case ExpressionType::LQPColumn:
+          case ExpressionType::Value:
+          case ExpressionType::Parameter:
+            continue;
+          default:
+            complex_expression = true;
+            break;
+        }
+      }
+      if (!complex_expression) return nullptr;
     }
   }
 
@@ -167,7 +179,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
   }
 
   if (use_validate && !validate_after_filter) {
-    jit_operator->add_jit_operator(std::make_shared<JitValidate>(TableType::Data, has_predicate));
+    jit_operator->add_jit_operator(std::make_shared<JitValidate>(TableType::Data, false));
   }
 
   // If we can reach the input node without encountering a UnionNode or PredicateNode,
