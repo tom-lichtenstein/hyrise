@@ -171,7 +171,7 @@ void run() {
     opossum::Print::print(table, 0, std::cerr);
   }
 
-  result["result_rows"] = table->row_count();
+  result["result_rows"] = table ? table->row_count() : 0;
   result["pipeline_compile_time"] = pipeline.metrics().statement_metrics.front()->sql_translate_time_nanos.count() / 1000 +
                                     pipeline.metrics().statement_metrics.front()->lqp_translate_time_nanos.count() / 1000;
   result["pipeline_execution_time"] = pipeline.metrics().statement_metrics.front()->execution_time_nanos.count() / 1000;

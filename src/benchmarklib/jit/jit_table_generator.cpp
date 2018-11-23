@@ -131,6 +131,8 @@ std::map<std::string, std::shared_ptr<opossum::Table>> JitTableGenerator::genera
     constexpr size_t number_of_chars = 5;
     const size_t scale_factor = pow(10, number_of_chars);
 
+    add_column<int32_t>(columns_by_chunk, column_definitions, "ID", cardinalities,
+                        [&](std::vector<size_t> indices) { return indices[0]; });
     add_column<int32_t>(columns_by_chunk, column_definitions, "I1", cardinalities,
                         [&](std::vector<size_t> indices) { return generator.random_number(0, scale_factor); });
     add_column<int32_t>(columns_by_chunk, column_definitions, "I2", cardinalities,

@@ -60,7 +60,12 @@ bool PredicateReorderingRule::_reorder_predicates(std::vector<std::shared_ptr<Ab
   const auto input_sides = predicates.front()->get_input_sides();
 
   const auto sort_predicate = [&](auto& left, auto& right) {
-    return left->derive_statistics_from(input)->row_count() > right->derive_statistics_from(input)->row_count();
+    const auto left_row_count = left->derive_statistics_from(input)->row_count();
+    const auto right_row_count = right->derive_statistics_from(input)->row_count();
+    if (left_row_count == right_row_count) {
+      return left->type == LQPNodeType::Validate;
+    }
+    return left_row_count > right_row_count;
   };
 
   if (std::is_sorted(predicates.begin(), predicates.end(), sort_predicate)) {
