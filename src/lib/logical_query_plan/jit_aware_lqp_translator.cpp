@@ -131,7 +131,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
       current_node = current_node->left_input();
     }
     const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(current_node);
-    if (const auto predicate std::dynamic_pointer_cast<BinaryPredicateExpression>(predicate_node->predicate)) {
+    if (const auto predicate = std::dynamic_pointer_cast<BinaryPredicateExpression>(predicate_node->predicate)) {
       bool complex_expression = false;
       for (const auto expression : predicate->arguments) {
         switch (expression->type) {
