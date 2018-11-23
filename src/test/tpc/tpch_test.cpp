@@ -65,7 +65,7 @@ class TPCHTest : public BaseTestWithParam<TestConfiguration> {
 TEST_P(TPCHTest, TPCHQueryTest) {
   const auto [query_idx, use_jit] = GetParam();  // NOLINT
   const auto tpch_idx = query_idx + 1;
-  const auto query = TPCHQueryGenerator{}.build_query(query_idx);
+  const auto query = TPCHQueryGenerator{}.build_deterministic_query(query_idx);
 
   /**
    * Generate the TPC-H tables with a scale factor appropriate for this query

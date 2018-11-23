@@ -133,5 +133,6 @@ int main(int argc, char* argv[]) {
   context.emplace("scale_factor", scale_factor);
 
   // Run the benchmark
-  opossum::BenchmarkRunner(*config, std::make_unique<opossum::TPCHQueryGenerator>(query_ids), context).run();
+  opossum::BenchmarkRunner(*config, std::make_unique<opossum::TPCHQueryGenerator>(scale_factor, query_ids), context)
+      .run();
 }
