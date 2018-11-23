@@ -9,8 +9,10 @@
 namespace opossum {
 
 TableStatistics::TableStatistics(const TableType table_type, const float row_count,
-                                 const std::vector<std::shared_ptr<const BaseColumnStatistics>>& column_statistics)
-    : _table_type(table_type), _row_count(row_count), _column_statistics(column_statistics) {}
+                                 const std::vector<std::shared_ptr<const BaseColumnStatistics>>& column_statistics,
+                                 const uint64_t approx_invalid_row_count)
+    : _table_type(table_type), _row_count(row_count), _column_statistics(column_statistics),
+    _approx_invalid_row_count(approx_invalid_row_count) {}
 
 TableType TableStatistics::table_type() const { return _table_type; }
 
@@ -84,7 +86,7 @@ TableStatistics TableStatistics::estimate_predicate(const ColumnID column_id,
     predicated_row_count *= estimate.selectivity;
   }
 
-  return {TableType::References, predicated_row_count, predicated_column_statistics};
+  return {TableType::References, predicated_row_count, predicated_column_statistics, _approx_invalid_row_count};
 }
 
 TableStatistics TableStatistics::estimate_cross_join(const TableStatistics& right_table_statistics) const {
@@ -106,7 +108,8 @@ TableStatistics TableStatistics::estimate_cross_join(const TableStatistics& righ
 
   auto cross_joined_row_count = _row_count * right_table_statistics._row_count;
 
-  return {TableType::References, cross_joined_row_count, cross_joined_column_statistics};
+  return {TableType::References, cross_joined_row_count, cross_joined_column_statistics,
+          _approx_invalid_row_count * right_table_statistics._approx_invalid_row_count};
 }
 
 TableStatistics TableStatistics::estimate_predicated_join(const TableStatistics& right_table_statistics,
@@ -182,6 +185,7 @@ TableStatistics TableStatistics::estimate_predicated_join(const TableStatistics&
 
   // apply predicate selectivity to cross join
   join_table_stats._row_count *= stats_container.selectivity;
+  join_table_stats._approx_invalid_row_count *= stats_container.selectivity;
 
   ColumnID new_right_column_id{static_cast<ColumnID::base_type>(_column_statistics.size() + column_ids.second)};
 

@@ -34,6 +34,7 @@ std::shared_ptr<TableStatistics> ProjectionNode::derive_statistics_from(
   const auto input_statistics = left_input->get_statistics();
   auto table_type = input_statistics->table_type();
   const auto row_count = input_statistics->row_count();
+  const uint64_t invalid_row_count = input_statistics->row_count() - input_statistics->approx_valid_row_count();
 
   std::vector<std::shared_ptr<const BaseColumnStatistics>> column_statistics;
   column_statistics.reserve(expressions.size());
@@ -54,7 +55,7 @@ std::shared_ptr<TableStatistics> ProjectionNode::derive_statistics_from(
     }
   }
 
-  return std::make_shared<TableStatistics>(table_type, row_count, column_statistics);
+  return std::make_shared<TableStatistics>(table_type, row_count, column_statistics, invalid_row_count);
 }
 
 std::shared_ptr<AbstractLQPNode> ProjectionNode::_on_shallow_copy(LQPNodeMapping& node_mapping) const {

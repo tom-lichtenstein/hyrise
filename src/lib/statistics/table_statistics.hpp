@@ -24,7 +24,8 @@ class TableStatistics final {
   static constexpr auto DEFAULT_DISJUNCTION_SELECTIVITY = 0.2f;
 
   TableStatistics(const TableType table_type, const float row_count,
-                  const std::vector<std::shared_ptr<const BaseColumnStatistics>>& column_statistics);
+                  const std::vector<std::shared_ptr<const BaseColumnStatistics>>& column_statistics,
+                  const uint64_t approx_invalid_row_count = 0);
   TableStatistics(const TableStatistics& table_statistics) = default;
 
   /**
