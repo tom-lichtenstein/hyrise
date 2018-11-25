@@ -317,6 +317,7 @@ int main(int argc, char* argv[]) {
                 << current_repetition << "/" << num_repetitions << std::endl;
 
       opossum::JitEvaluationHelper::get().result() = nlohmann::json::object();
+      opossum::Global::get().times.clear();
       if (experiment["task"] == "lqp") {
         lqp();
       } else if (experiment["task"] == "pqp") {
@@ -325,6 +326,25 @@ int main(int argc, char* argv[]) {
         run();
       } else {
         throw std::logic_error("unknown task");
+      }
+      if constexpr (!PAPI_SUPPORT) {
+        auto& result = opossum::JitEvaluationHelper::get().result();
+        nlohmann::json operators = nlohmann::json::array();
+        for (const auto pair : opossum::Global::get().times) {
+          if (pair.second.execution_time.count() > 0) {
+            operators.push_back({{"name", pair.first}, {"prepare", false}, {"walltime", pair.second.execution_time.count()}});
+          };
+          if (pair.second.__execution_time.count() > 0) {
+            operators.push_back({{"name", "__" + pair.first}, {"prepare", false}, {"walltime", pair.second.__execution_time.count()}});
+          };
+          if (pair.second.preparation_time.count() > 0) {
+            operators.push_back({{"name", pair.first}, {"prepare", true}, {"walltime", pair.second.preparation_time.count()}});
+          };
+          if (pair.second.__preparation_time.count() > 0) {
+            operators.push_back({{"name", "__" + pair.first}, {"prepare", true}, {"walltime", pair.second.__preparation_time.count()}});
+          };
+        }
+        result["operators"] = operators;
       }
       output["results"].push_back(opossum::JitEvaluationHelper::get().result());
     }

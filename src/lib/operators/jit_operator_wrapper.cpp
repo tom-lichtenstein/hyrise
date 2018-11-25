@@ -186,9 +186,9 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
     context.snapshot_commit_id = transaction_context()->snapshot_commit_id();
   }
 
-  std::chrono::nanoseconds before_chunk_time{0};
-  std::chrono::nanoseconds after_chunk_time{0};
-  std::chrono::nanoseconds function_time{0};
+  std::chrono::microseconds before_chunk_time{0};
+  std::chrono::microseconds after_chunk_time{0};
+  std::chrono::microseconds function_time{0};
 
   Timer timer;
 
@@ -222,20 +222,21 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   auto after_query_time = timer.lap();
 
   if (Global::get().jit_evaluate) {
-    auto& operators = JitEvaluationHelper::get().result()["operators"];
-    auto add_time = [&operators](const std::string& name, const auto& time) {
-      const auto micro_s = std::chrono::duration_cast<std::chrono::microseconds>(time).count();
-      if (micro_s > 0) {
-        nlohmann::json jit_op = {{"name", name}, {"prepare", false}, {"walltime", micro_s}};
-        operators.push_back(jit_op);
+    auto add_time = [](const std::string& name, const auto& time) {
+      if (time.count() > 0) {
+        auto& times = Global::get().times[name];
+        if (Global::get().deep_copy_exists) {
+          times.__preparation_time += time;
+        } else {
+          times.preparation_time += time;
+        }
       }
     };
-    std::string name_prefix = Global::get().deep_copy_exists ? "__" : "";
-    add_time(name_prefix + "_JitBeforeQuery", before_query_time);
-    add_time(name_prefix + "_JitAfterQuery", after_query_time);
-    add_time(name_prefix + "_JitBeforChunk", before_chunk_time);
-    add_time(name_prefix + "_JitAfterChunk", after_chunk_time);
-    add_time(name_prefix + "_Function", function_time);
+    add_time("_JitBeforeQuery", before_query_time);
+    add_time("_JitAfterQuery", after_query_time);
+    add_time("_JitBeforChunk", before_chunk_time);
+    add_time("_JitAfterChunk", after_chunk_time);
+    add_time("_Function", function_time);
 
 #if JIT_MEASURE
     std::chrono::nanoseconds operator_total_time{0};

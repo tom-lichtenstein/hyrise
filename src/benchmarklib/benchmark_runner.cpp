@@ -15,6 +15,7 @@
 #include "version.hpp"
 #include "visualization/lqp_visualizer.hpp"
 #include "visualization/sql_query_plan_visualizer.hpp"
+#include "operators/jit_operator/specialization/jit_repository.hpp"
 
 namespace opossum {
 
@@ -56,6 +57,9 @@ void BenchmarkRunner::run() {
   const auto available_queries_count = _query_generator->available_query_count();
   _query_plans.resize(available_queries_count);
   _query_results.resize(available_queries_count);
+
+  // Initializing JIT repository
+  opossum::JitRepository::get();
 
   auto benchmark_start = std::chrono::steady_clock::now();
 
@@ -362,7 +366,7 @@ void BenchmarkRunner::_create_report(std::ostream& stream) const {
     nlohmann::json operators;
     for (const auto& pair : query_result.times) {
       operators.push_back({
-          {"name", operator_type_to_string.at(pair.first)},
+          {"name", pair.first},
           {"preparation_time", static_cast<size_t>(pair.second.preparation_time.count() / query_result.num_iterations)},
           {"execution_time", static_cast<size_t>(pair.second.execution_time.count() / query_result.num_iterations)},
           {"__preparation_time", static_cast<size_t>(pair.second.__preparation_time.count() / query_result.num_iterations)},

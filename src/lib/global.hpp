@@ -8,13 +8,12 @@
 namespace opossum {
 
 struct OperatorTimes {
+  OperatorTimes() : preparation_time{0}, execution_time{0}, __preparation_time{0}, __execution_time{0} {}
   std::chrono::microseconds preparation_time;
   std::chrono::microseconds execution_time;
   std::chrono::microseconds __preparation_time;
   std::chrono::microseconds __execution_time;
 };
-
-enum class OperatorType;
 
 struct Global : public Singleton<Global> {
   bool jit = false;
@@ -25,7 +24,7 @@ struct Global : public Singleton<Global> {
   bool interpret = false;
   bool use_times = false;
   bool disable_string_compare = false;
-  std::map<OperatorType, OperatorTimes> times;
+  std::map<std::string, OperatorTimes> times;
 
  private:
   Global() = default;

@@ -76,9 +76,9 @@ void AbstractOperator::execute() {
     Global::get().deep_copy_exists = true;
   }
 
+#if PAPI_SUPPORT
   auto& result = JitEvaluationHelper::get().result();
 
-#if PAPI_SUPPORT
   auto papi_events = JitEvaluationHelper::get().globals()["papi_events"];
   auto num_counters = papi_events.size();
   int32_t papi_event_ids[10];
@@ -112,18 +112,18 @@ void AbstractOperator::execute() {
 
   const auto preparation_time = performance_timer.lap();
 
+#if PAPI_SUPPORT
   if (Global::get().jit_evaluate) {
     std::string name_prefix = old_deep_copy_exists ? "__" : "";
     nlohmann::json op = {{"name", name_prefix + name()}, {"prepare", true}, {"walltime", preparation_time.count()}};
-#if PAPI_SUPPORT
     for (uint32_t i = 0; i < num_counters; ++i) {
       op[papi_events[i].get<std::string>()] = papi_values[i];
       papi_values[i] = 0;
     }
-#endif
 
     result["operators"].push_back(op);
   }
+#endif
 
   performance_timer.lap();
 
@@ -166,33 +166,25 @@ void AbstractOperator::execute() {
 
   _performance_data->walltime = performance_timer.lap();
 
+#if PAPI_SUPPORT
   if (Global::get().jit_evaluate) {
     std::string name_prefix = old_deep_copy_exists ? "__" : "";
     nlohmann::json op2 = {{"name", name_prefix + name()}, {"prepare", false}, {"walltime", _performance_data->walltime.count()}};
-#if PAPI_SUPPORT
     for (uint32_t i = 0; i < num_counters; ++i) {
       op2[papi_events[i].get<std::string>()] = papi_values[i];
     }
-#endif
-
     result["operators"].push_back(op2);
   }
-  if (Global::get().use_times) {
-    auto find = Global::get().times.find(_type);
-    if (find != Global::get().times.end()) {
-      if (old_deep_copy_exists) {
-        find->second.__preparation_time += preparation_time;
-        find->second.__execution_time += _performance_data->walltime;
-      } else {
-        find->second.preparation_time += preparation_time;
-        find->second.execution_time += _performance_data->walltime;
-      }
+#endif
+
+  if (Global::get().use_times || Global::get().jit_evaluate) {
+    auto& times = Global::get().times[name()];
+    if (old_deep_copy_exists) {
+      times.__preparation_time += preparation_time;
+      times.__execution_time += _performance_data->walltime;
     } else {
-      if (old_deep_copy_exists) {
-        Global::get().times.emplace(_type, OperatorTimes{std::chrono::microseconds{0}, std::chrono::microseconds{0}, preparation_time, _performance_data->walltime});
-      } else {
-        Global::get().times.emplace(_type, OperatorTimes{preparation_time, _performance_data->walltime, std::chrono::microseconds{0}, std::chrono::microseconds{0}});
-      };
+      times.preparation_time += preparation_time;
+      times.execution_time += _performance_data->walltime;
     }
   }
 
