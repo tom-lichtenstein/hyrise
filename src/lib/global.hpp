@@ -24,6 +24,7 @@ struct Global : public Singleton<Global> {
   bool interpret = false;
   bool use_times = false;
   bool disable_string_compare = false;
+  bool use_limit_in_subquery = false;
   std::map<std::string, OperatorTimes> times;
 
  private:

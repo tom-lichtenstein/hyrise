@@ -113,7 +113,9 @@ std::shared_ptr<Optimizer> Optimizer::create_default_optimizer() {
 
   final_batch.add_rule(std::make_shared<IndexScanRule>());
 
-  if (Global::get().jit) final_batch.add_rule(std::make_shared<InsertLimitInExistsRule>());
+  if (Global::get().use_limit_in_subquery) {
+    final_batch.add_rule(std::make_shared<InsertLimitInExistsRule>());
+  }
 
   final_batch.add_rule(std::make_shared<LimitPushdownRule>());
 

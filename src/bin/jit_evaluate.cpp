@@ -24,6 +24,7 @@
 #include "sql/sql_pipeline_builder.hpp"
 #include "sql/sql_query_cache.hpp"
 #include "types.hpp"
+#include "logical_query_plan/abstract_lqp_node.hpp"
 
 const size_t cache_line = 64;
 
@@ -294,6 +295,10 @@ int main(int argc, char* argv[]) {
       current_scale_factor = experiment_scale_factor;
       generte_tables(config, current_scale_factor);
     }
+    if (!experiment.count("use_limit_in_subquery")) {
+      experiment["use_limit_in_subquery"] = experiment.at("engine") == "jit";
+    }
+    opossum::Global::get().use_limit_in_subquery = experiment["use_limit_in_subquery"];
     if (experiment.at("engine") == "opossum") {
       opossum::Global::get().jit = false;
     } else if (experiment.at("engine") == "jit") {
@@ -349,6 +354,7 @@ int main(int argc, char* argv[]) {
       output["results"].push_back(opossum::JitEvaluationHelper::get().result());
     }
     opossum::SQLQueryCache<opossum::SQLQueryPlan>::get().clear();
+    opossum::SQLQueryCache<std::shared_ptr<opossum::AbstractLQPNode>>::get().clear();
     file_output["results"].push_back(output);
   }
   std::ofstream output_file{output_file_name};

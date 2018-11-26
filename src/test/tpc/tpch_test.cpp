@@ -194,6 +194,7 @@ TEST_P(TPCHTest, TPCHQueryTest) {
 
   auto& global = opossum::Global::get();
   global.jit = use_jit;
+  global.use_limit_in_subquery = true;
 
   std::shared_ptr<LQPTranslator> lqp_translator;
   if (use_jit) {
@@ -231,6 +232,7 @@ TEST_P(TPCHTest, TPCHQueryTest) {
                   FloatComparisonMode::RelativeDifference);
 
   global.jit = false;
+  global.use_limit_in_subquery = false;
 }
 
 INSTANTIATE_TEST_CASE_P(TPCHTestInstances, TPCHTest, ::testing::ValuesIn(TPCHTest::build_combinations()), );  // NOLINT
