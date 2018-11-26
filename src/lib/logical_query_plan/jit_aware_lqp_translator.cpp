@@ -540,7 +540,7 @@ bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPN
     return true;
   }
 
-  if (allow_limit_node && node->type == LQPNodeType::Limit) {
+  if (Global::get().jit_limit && allow_limit_node && node->type == LQPNodeType::Limit) {
     return true;
   }
 
