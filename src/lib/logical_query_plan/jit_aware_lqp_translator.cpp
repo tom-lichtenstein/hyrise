@@ -124,7 +124,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
   if (jittable_node_count == 1 && (node->type != LQPNodeType::Aggregate && !has_predicate))
     return nullptr;
 
-  if (jittable_node_count == 1 && has_predicate) {
+  if (jittable_node_count == 1 && has_predicate && !Global::get().allow_single_predicate) {
     // do not jit for single simple table scan
     auto current_node = node;
     while (current_node->type != LQPNodeType::Predicate) {
@@ -301,6 +301,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
 namespace {
 bool can_translate_predicate_to_predicate_value_id_expression(const AbstractExpression& expression,
                                                               const std::shared_ptr<AbstractLQPNode>& input_node) {
+  if (!Global::get().use_value_id) return false;
   // input node must be a stored table node
   if (input_node && input_node->type != LQPNodeType::StoredTable) return false;
 

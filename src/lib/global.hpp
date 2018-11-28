@@ -26,6 +26,8 @@ struct Global : public Singleton<Global> {
   bool disable_string_compare = false;
   bool use_limit_in_subquery = false;
   bool jit_limit = true;
+  bool allow_single_predicate = false;
+  bool use_value_id = true;
   std::map<std::string, OperatorTimes> times;
 
  private:
