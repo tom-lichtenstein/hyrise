@@ -63,23 +63,44 @@ using pmr_vector = std::vector<T, PolymorphicAllocator<T>>;
 // Once that works, replace the class below with
 // using pmr_concurrent_vector = tbb::concurrent_vector<T, PolymorphicAllocator<T>>;
 template <typename T>
-class pmr_concurrent_vector : public tbb::concurrent_vector<T> {
+#if CONCURRENT_VECTOR
+using concurrent_vector = tbb:concurrent_vector<T>;
+#else
+using concurrent_vector = std::vector<T>;
+#endif
+
+
+template <typename T>
+class pmr_concurrent_vector : public concurrent_vector<T> {
  public:
   pmr_concurrent_vector(PolymorphicAllocator<T> alloc = {}) : pmr_concurrent_vector(0, alloc) {}  // NOLINT
   pmr_concurrent_vector(std::initializer_list<T> init_list, PolymorphicAllocator<T> alloc = {})
-      : tbb::concurrent_vector<T>(init_list), _alloc(alloc) {}         // NOLINT
+      : concurrent_vector<T>(init_list), _alloc(alloc) {}         // NOLINT
   pmr_concurrent_vector(size_t n, PolymorphicAllocator<T> alloc = {})  // NOLINT
       : pmr_concurrent_vector(n, T{}, alloc) {}
   pmr_concurrent_vector(size_t n, T val, PolymorphicAllocator<T> alloc = {})  // NOLINT
-      : tbb::concurrent_vector<T>(n, val), _alloc(alloc) {}
-  pmr_concurrent_vector(tbb::concurrent_vector<T> other, PolymorphicAllocator<T> alloc = {})  // NOLINT
-      : tbb::concurrent_vector<T>(other), _alloc(alloc) {}
+      : concurrent_vector<T>(n, val), _alloc(alloc) {}
+  pmr_concurrent_vector(concurrent_vector<T> other, PolymorphicAllocator<T> alloc = {})  // NOLINT
+      : concurrent_vector<T>(other), _alloc(alloc) {}
+
+#if CONCURRENT_VECTOR
   pmr_concurrent_vector(std::vector<T>& values, PolymorphicAllocator<T> alloc = {})  // NOLINT
-      : tbb::concurrent_vector<T>(values.begin(), values.end()), _alloc(alloc) {}
+      : concurrent_vector<T>(values.begin(), values.end()), _alloc(alloc) {}
+#endif
 
   template <class I>
   pmr_concurrent_vector(I first, I last, PolymorphicAllocator<T> alloc = {})
-      : tbb::concurrent_vector<T>(first, last), _alloc(alloc) {}
+      : concurrent_vector<T>(first, last), _alloc(alloc) {}
+
+#if !CONCURRENT_VECTOR
+  using BASE_TYPE = concurrent_vector<T>;
+  void grow_to_at_least(typename BASE_TYPE::size_type count, const typename BASE_TYPE::value_type& value) {
+    this->resize(count, value);
+  }
+  void grow_to_at_least(typename BASE_TYPE::size_type count) {
+    this->resize(count);
+  }
+#endif
 
   const PolymorphicAllocator<T>& get_allocator() const { return _alloc; }
 

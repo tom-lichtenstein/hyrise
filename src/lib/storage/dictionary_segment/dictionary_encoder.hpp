@@ -91,7 +91,7 @@ class DictionaryEncoder : public SegmentEncoder<DictionaryEncoder<Encoding>> {
 
       /**
        * Iterators are used because values and null_values are of
-       * type tbb::concurrent_vector and thus index-based access isn’t in O(1)
+       * type concurrent_vector and thus index-based access isn’t in O(1)
        */
       auto value_it = values.cbegin();
       auto null_value_it = null_values.cbegin();

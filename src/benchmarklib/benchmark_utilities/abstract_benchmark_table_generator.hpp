@@ -67,7 +67,7 @@ class AbstractBenchmarkTableGenerator {
     auto loop_count =
         std::accumulate(std::begin(*cardinalities), std::end(*cardinalities), 1u, std::multiplies<size_t>());
 
-    tbb::concurrent_vector<T> data;
+    concurrent_vector<T> data;
     data.reserve(_chunk_size);
 
     /**
@@ -204,8 +204,8 @@ class AbstractBenchmarkTableGenerator {
     auto loop_count =
         std::accumulate(std::begin(*cardinalities), std::end(*cardinalities), 1u, std::multiplies<size_t>());
 
-    tbb::concurrent_vector<T> column;
-    tbb::concurrent_vector<bool> null_column;
+    concurrent_vector<T> column;
+    concurrent_vector<bool> null_column;
     column.reserve(_chunk_size);
     null_column.reserve(_chunk_size);
 

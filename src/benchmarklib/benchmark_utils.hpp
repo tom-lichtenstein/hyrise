@@ -49,7 +49,7 @@ struct QueryBenchmarkResult : public Noncopyable {
   std::atomic<size_t> num_iterations = 0;
   Duration duration = Duration{};
   std::map<std::string, OperatorTimes> times;
-  tbb::concurrent_vector<Duration> iteration_durations;
+  concurrent_vector<Duration> iteration_durations;
 };
 
 /**

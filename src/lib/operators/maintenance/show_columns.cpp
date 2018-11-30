@@ -41,12 +41,12 @@ std::shared_ptr<const Table> ShowColumns::_on_execute() {
 
   const auto& column_names = table->column_names();
   const auto vs_names = std::make_shared<ValueSegment<std::string>>(
-      tbb::concurrent_vector<std::string>(column_names.begin(), column_names.end()));
+      concurrent_vector<std::string>(column_names.begin(), column_names.end()));
   segments.push_back(vs_names);
 
   const auto& column_types = table->column_data_types();
 
-  auto data_types = tbb::concurrent_vector<std::string>{};
+  auto data_types = concurrent_vector<std::string>{};
   for (const auto column_type : column_types) {
     data_types.push_back(data_type_to_string.left.at(column_type));
   }
@@ -56,7 +56,7 @@ std::shared_ptr<const Table> ShowColumns::_on_execute() {
 
   const auto& column_nullables = table->columns_are_nullable();
   const auto vs_nullables = std::make_shared<ValueSegment<int32_t>>(
-      tbb::concurrent_vector<int32_t>(column_nullables.begin(), column_nullables.end()));
+      concurrent_vector<int32_t>(column_nullables.begin(), column_nullables.end()));
   segments.push_back(vs_nullables);
 
   out_table->append_chunk(segments);

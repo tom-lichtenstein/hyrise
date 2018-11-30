@@ -41,7 +41,7 @@ class BaseTestWithParam
   template <typename T>
   static std::shared_ptr<DictionarySegment<T>> create_dict_segment_by_type(DataType data_type,
                                                                            const std::vector<T>& values) {
-    auto vector_values = tbb::concurrent_vector<T>(values.begin(), values.end());
+    auto vector_values = concurrent_vector<T>(values.begin(), values.end());
     auto value_segment = std::make_shared<ValueSegment<T>>(std::move(vector_values));
 
     auto compressed_segment = encode_segment(EncodingType::Dictionary, data_type, value_segment);

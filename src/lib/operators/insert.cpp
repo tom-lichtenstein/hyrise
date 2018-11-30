@@ -204,7 +204,7 @@ std::shared_ptr<const Table> Insert::_on_execute(std::shared_ptr<TransactionCont
       // we do not need to check whether other operators have locked the rows, we have just created them
       // and they are not visible for other operators.
       // the transaction IDs are set here and not during the resize, because
-      // tbb::concurrent_vector::grow_to_at_least(n, t)" does not work with atomics, since their copy constructor is
+      // concurrent_vector::grow_to_at_least(n, t)" does not work with atomics, since their copy constructor is
       // deleted.
       target_chunk->get_scoped_mvcc_data_lock()->tids[i] = context->transaction_id();
       _inserted_rows.emplace_back(RowID{target_chunk_id, i});
