@@ -64,7 +64,7 @@ using pmr_vector = std::vector<T, PolymorphicAllocator<T>>;
 // using pmr_concurrent_vector = tbb::concurrent_vector<T, PolymorphicAllocator<T>>;
 template <typename T>
 #if CONCURRENT_VECTOR
-using concurrent_vector = tbb:concurrent_vector<T>;
+using concurrent_vector = tbb::concurrent_vector<T>;
 #else
 using concurrent_vector = std::vector<T>;
 #endif
