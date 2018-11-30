@@ -51,7 +51,9 @@ void remove_table_from_cache(opossum::Table& table) {
         if (auto value_column = std::dynamic_pointer_cast<const opossum::ValueSegment<ColumnDataType>>(segment)) {
           remove_vector_from_cache(value_column->values());
           if (table.column_is_nullable(column_id)) {
+#if CONCURRENT_VECTOR
             remove_vector_from_cache(value_column->null_values());
+#endif
           }
         } else if (auto dict_column =
                        std::dynamic_pointer_cast<const opossum::DictionarySegment<ColumnDataType>>(segment)) {

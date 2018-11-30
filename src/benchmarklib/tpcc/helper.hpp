@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include "types.hpp"
+
 namespace opossum {
 
 class OperatorTask;
