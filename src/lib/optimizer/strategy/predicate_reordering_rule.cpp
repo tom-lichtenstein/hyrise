@@ -63,7 +63,7 @@ bool PredicateReorderingRule::_reorder_predicates(std::vector<std::shared_ptr<Ab
     const auto left_row_count = left->derive_statistics_from(input)->row_count();
     const auto right_row_count = right->derive_statistics_from(input)->row_count();
     if (left_row_count == right_row_count) {
-      return left->type == LQPNodeType::Validate;
+      // return left->type == LQPNodeType::Validate;
     }
     return left_row_count > right_row_count;
   };

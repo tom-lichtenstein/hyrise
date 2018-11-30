@@ -44,7 +44,7 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
     // constexpr auto a_id = 0;
     constexpr int32_t val = 50000;
     read_tuples.add_literal_value(AllTypeVariant(val));
-    constexpr auto l_id = 1;
+    // constexpr auto l_id = 1;
     read_tuples.add_temporary_value();
     // constexpr auto tmp_id = 2;
     // const auto tpl =
@@ -87,7 +87,8 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
         */
         //context.tuple.set<int>(tmp_id, context.tuple.get<int>(a_id) < context.tuple.get<int>(l_id));
         //if (!context.tuple.get<int>(tmp_id)) {
-        if (! (static_cast<OwnJitSegmentReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < context.tuple.get<int>(l_id))) {
+        int32_t value = 50000;  // context.tuple.get<int>(l_id)
+        if (! (static_cast<OwnJitSegmentReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < value)) {
           continue;
         }
 
