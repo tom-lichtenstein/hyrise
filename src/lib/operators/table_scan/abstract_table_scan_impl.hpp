@@ -25,8 +25,7 @@ class AbstractTableScanImpl {
    */
 
   template <bool CheckForNull, typename BinaryFunctor, typename LeftIterator>
-  static void __attribute__((noinline))
-  _scan_with_iterators(const BinaryFunctor func, LeftIterator left_it, const LeftIterator left_end,
+  static void _scan_with_iterators(const BinaryFunctor func, LeftIterator left_it, const LeftIterator left_end,
                        const ChunkID chunk_id, PosList& matches_out) {
     // Can't use a default argument for this because default arguments are non-type deduced contexts
     auto false_type = std::false_type{};
@@ -34,8 +33,7 @@ class AbstractTableScanImpl {
   }
 
   template <bool CheckForNull, typename BinaryFunctor, typename LeftIterator, typename RightIterator>
-  // noinline reduces compile time drastically
-  static void __attribute__((noinline))
+  static void __attribute__((noinline, flatten, hot, aligned(64)))
   _scan_with_iterators(const BinaryFunctor func, LeftIterator left_it, const LeftIterator left_end,
                        const ChunkID chunk_id, PosList& matches_out, [[maybe_unused]] RightIterator right_it) {
     for (; left_it != left_end; ++left_it) {
