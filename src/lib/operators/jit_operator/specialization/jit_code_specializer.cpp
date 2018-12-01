@@ -106,7 +106,7 @@ std::shared_ptr<llvm::Module> JitCodeSpecializer::specialize_function(
   _optimize(context, true, false);
 #endif
 
-  if constexpr (false) print(context);
+  if (false) print(context);
 
   _inline_function_calls(context);
   _perform_load_substitution(context);
@@ -131,9 +131,9 @@ std::shared_ptr<llvm::Module> JitCodeSpecializer::specialize_function(
 
   if (JitEvaluationHelper::get().experiment().count("show_llvm") &&
       JitEvaluationHelper::get().experiment()["show_llvm"].get<bool>()) print(context);
-  if constexpr (false) print_function(context.root_function);
+  if (false) print_function(context.root_function);
 
-  if constexpr (false) count_instructions(context.root_function);
+  if (false) count_instructions(context.root_function);
 #if PAPI_SUPPORT
   count_instructions(context.root_function);
 #endif

@@ -131,6 +131,14 @@ else()
     add_definitions(-DCONCURRENT_VECTOR=0)
 endif()
 
+OPTION(LESS_JIT_CONTEXT "LESS_JIT_CONTEXT" ON)
+MESSAGE(STATUS "LESS_JIT_CONTEXT ${LESS_JIT_CONTEXT}")
+if(LESS_JIT_CONTEXT)
+    add_definitions(-DLESS_JIT_CONTEXT=1)
+else()
+    add_definitions(-DLESS_JIT_CONTEXT=0)
+endif()
+
 add_definitions(-DBOOST_THREAD_VERSION=5)
 
 if(${LLVM_FOUND})

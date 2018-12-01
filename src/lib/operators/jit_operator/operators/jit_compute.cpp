@@ -68,12 +68,15 @@ void JitCompute::set_load_column(const size_t tuple_id, const std::shared_ptr<Ba
 }
 
 void JitCompute::_consume(JitRuntimeContext& context) const {
-  // _expression->compute(context);
+#if LESS_JIT_CONTEXT
   switch (_expression->result().data_type()) {
     BOOST_PP_SEQ_FOR_EACH_PRODUCT(JIT_COMPUTE_CASE_AND_GET, (JIT_DATA_TYPE_INFO))
     case DataType::Null:
       break;
   }
+#else
+  _expression->compute(context);
+#endif
   _emit(context);
 }
 
