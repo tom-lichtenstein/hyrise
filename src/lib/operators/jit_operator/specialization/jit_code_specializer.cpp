@@ -12,6 +12,7 @@
 #include <llvm/Transforms/IPO/ForceFunctionAttrs.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Scalar.h>
+#include <llvm/Support/Casting.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -35,6 +36,29 @@ void print_function(llvm::Function* F) {
   for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
     llvm::errs() << *I << "\n";
   }
+}
+
+void count_instructions(llvm::Function* F) {
+  size_t load = 0;
+  size_t store = 0;
+  size_t cond_branch = 0;
+  size_t call = 0;
+  size_t total = 0;
+  for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
+      if (llvm::isa<llvm::LoadInst>(*I)) ++load;
+      if (llvm::isa<llvm::StoreInst>(*I)) ++store;
+      if (const auto branch_instr = llvm::dyn_cast<llvm::BranchInst>(&*I)){
+        if (branch_instr->isConditional())  ++cond_branch;
+      }
+      if (llvm::isa<llvm::CallInst>(*I)) ++call;
+      if (llvm::isa<llvm::Instruction>(*I)) ++total;
+  }
+  auto& instruction_counts = Global::get().instruction_counts;
+  instruction_counts["load"] += load;
+  instruction_counts["store"] += store;
+  instruction_counts["cond_branch"] += cond_branch;
+  instruction_counts["call"] += call;
+  instruction_counts["total"] += total;
 }
 
 }  // namespace
@@ -82,7 +106,7 @@ std::shared_ptr<llvm::Module> JitCodeSpecializer::specialize_function(
   _optimize(context, true, false);
 #endif
 
-  if (false) print(context);
+  if constexpr (false) print(context);
 
   _inline_function_calls(context);
   _perform_load_substitution(context);
@@ -107,7 +131,12 @@ std::shared_ptr<llvm::Module> JitCodeSpecializer::specialize_function(
 
   if (JitEvaluationHelper::get().experiment().count("show_llvm") &&
       JitEvaluationHelper::get().experiment()["show_llvm"].get<bool>()) print(context);
-  if (false) print_function(context.root_function);
+  if constexpr (false) print_function(context.root_function);
+
+  if constexpr (false) count_instructions(context.root_function);
+#if PAPI_SUPPORT
+  count_instructions(context.root_function);
+#endif
 
   return context.module;
 }

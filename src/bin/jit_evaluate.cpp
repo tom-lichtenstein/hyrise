@@ -158,16 +158,16 @@ void run() {
 
   result = nlohmann::json::object();
   if (experiment.at("engine") == "jit") {
-    opossum::JitEvaluationHelper::get().result()["dynamic_resolved"] = 0;
-    opossum::JitEvaluationHelper::get().result()["static_resolved"] = 0;
-    opossum::JitEvaluationHelper::get().result()["resolved_vtables"] = 0;
-    opossum::JitEvaluationHelper::get().result()["not_resolved_vtables"] = 0;
-    opossum::JitEvaluationHelper::get().result()["inlined_functions"] = 0;
-    opossum::JitEvaluationHelper::get().result()["replaced_values"] = 0;
+    result["dynamic_resolved"] = 0;
+    result["static_resolved"] = 0;
+    result["resolved_vtables"] = 0;
+    result["not_resolved_vtables"] = 0;
+    result["inlined_functions"] = 0;
+    result["replaced_values"] = 0;
   }
 
   opossum::SQLPipeline pipeline =
-      opossum::SQLPipelineBuilder(query_string).with_mvcc(opossum::UseMvcc(mvcc)).create_pipeline();
+          opossum::SQLPipelineBuilder(query_string).with_mvcc(opossum::UseMvcc(mvcc)).create_pipeline();
   const auto table = pipeline.get_result_table();
 
   if (experiment.count("print") && experiment["print"]) {
@@ -179,6 +179,11 @@ void run() {
                                     pipeline.metrics().statement_metrics.front()->lqp_translate_time_nanos.count() / 1000;
   result["pipeline_execution_time"] = pipeline.metrics().statement_metrics.front()->execution_time_nanos.count() / 1000;
   result["pipeline_optimize_time"] = pipeline.metrics().statement_metrics.front()->optimize_time_nanos.count() / 1000;
+  nlohmann::json instruction_counts;
+  for (const auto& pair : opossum::Global::get().instruction_counts) {
+    instruction_counts[pair.first] = pair.second;
+  }
+  result["instruction_counts"] = instruction_counts;
   opossum::Global::get().jit_evaluate = false;
 }
 
@@ -331,6 +336,7 @@ int main(int argc, char* argv[]) {
 
       opossum::JitEvaluationHelper::get().result() = nlohmann::json::object();
       opossum::Global::get().times.clear();
+      opossum::Global::get().instruction_counts.clear();
       if (experiment["task"] == "lqp") {
         lqp();
       } else if (experiment["task"] == "pqp") {

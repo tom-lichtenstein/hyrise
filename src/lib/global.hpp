@@ -30,6 +30,8 @@ struct Global : public Singleton<Global> {
   bool use_value_id = true;
   std::map<std::string, OperatorTimes> times;
 
+  std::map<std::string, size_t> instruction_counts;
+
  private:
   Global() = default;
 
