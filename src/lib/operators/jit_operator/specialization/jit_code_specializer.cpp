@@ -42,13 +42,18 @@ void count_instructions(llvm::Function* F) {
   size_t load = 0;
   size_t store = 0;
   size_t cond_branch = 0;
+  size_t uncond_branch = 0;
   size_t call = 0;
   size_t total = 0;
   for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
       if (llvm::isa<llvm::LoadInst>(*I)) ++load;
       if (llvm::isa<llvm::StoreInst>(*I)) ++store;
       if (const auto branch_instr = llvm::dyn_cast<llvm::BranchInst>(&*I)){
-        if (branch_instr->isConditional())  ++cond_branch;
+        if (branch_instr->isConditional()) {
+          ++cond_branch;
+        } else {
+          ++uncond_branch;
+        }
       }
       if (llvm::isa<llvm::CallInst>(*I)) ++call;
       if (llvm::isa<llvm::Instruction>(*I)) ++total;
@@ -57,7 +62,9 @@ void count_instructions(llvm::Function* F) {
   instruction_counts["load"] += load;
   instruction_counts["store"] += store;
   instruction_counts["cond_branch"] += cond_branch;
+  instruction_counts["uncond_branch"] += uncond_branch;
   instruction_counts["call"] += call;
+  instruction_counts["basic_blocks"] += F->getBasicBlockList().size();
   instruction_counts["total"] += total;
 }
 
