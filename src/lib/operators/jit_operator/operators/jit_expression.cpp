@@ -58,7 +58,11 @@ void JitExpression::compute(JitRuntimeContext& context) const {
   // We are dealing with an already computed value here, so there is nothing to do.
   if (_expression_type == JitExpressionType::Column) {
 #if JIT_LAZY_LOAD
+#if JIT_READER_WRAPPER
     if (_load_column) _input_segment_wrapper->read_value(context);
+#else
+    if (_load_column) context.inputs[reader_index]->read_value(context);
+#endif
 #endif
     return;
   }

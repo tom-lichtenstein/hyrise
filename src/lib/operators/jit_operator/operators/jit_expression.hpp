@@ -66,7 +66,11 @@ class JitExpression {
   void set_load_column(const std::shared_ptr<BaseJitSegmentReaderWrapper> input_segment_wrapper) const {
 #if JIT_LAZY_LOAD
     const_cast<bool&>(_load_column) = true;
+#if JIT_READER_WRAPPER
     const_cast<std::shared_ptr<BaseJitSegmentReaderWrapper>&>(_input_segment_wrapper) = input_segment_wrapper;
+#else
+    const_cast<size_t&>(reader_index) = _input_segment_wrapper.reader_index;
+#endif
 #endif
   }
 
@@ -87,7 +91,11 @@ class JitExpression {
   BOOST_PP_SEQ_FOR_EACH(JIT_EXPRESSION_MEMBER, _, JIT_DATA_TYPE_INFO)
 #if JIT_LAZY_LOAD
   const bool _load_column = false;
+#if JIT_READER_WRAPPER
   const std::shared_ptr<BaseJitSegmentReaderWrapper> _input_segment_wrapper;
+#else
+  const size_t reader_index;
+#endif
 #endif
 };
 
