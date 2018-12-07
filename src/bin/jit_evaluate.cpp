@@ -315,12 +315,14 @@ int main(int argc, char* argv[]) {
       if (!experiment.count("jit_limit")) experiment["jit_limit"] = true;
       if (!experiment.count("allow_single_predicate")) experiment["allow_single_predicate"] = false;
       if (!experiment.count("use_value_id")) experiment["use_value_id"] = true;
+      if (!experiment.count("reference_output")) experiment["reference_output"] = true;
       opossum::Global::get().jit = true;
       opossum::Global::get().lazy_load = experiment["lazy_load"];
       opossum::Global::get().jit_validate = experiment["jit_validate"];
       opossum::Global::get().jit_limit = experiment["jit_limit"];
       opossum::Global::get().allow_single_predicate = experiment["allow_single_predicate"];
       opossum::Global::get().use_value_id = experiment["use_value_id"];
+      opossum::Global::get().reference_output = experiment["reference_output"];
     } else {
       opossum::Fail("unknown query engine parameter");
     }

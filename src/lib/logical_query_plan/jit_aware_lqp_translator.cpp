@@ -269,7 +269,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
         node->column_expressions().begin(), node->column_expressions().end(),
         [&input_node](const auto& column_expression) { return !input_node->find_column_id(*column_expression); });
 
-    if (output_must_be_materialized != node->column_expressions().end()) {
+    if (output_must_be_materialized != node->column_expressions().end() || !Global::get().reference_output) {
       // Add a compute operator for each computed output column (i.e., a column that is not from a stored table).
       auto write_table = std::make_shared<JitWriteTuples>();
       for (const auto& column_expression : node->column_expressions()) {

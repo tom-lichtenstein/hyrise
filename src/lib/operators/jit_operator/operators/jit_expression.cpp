@@ -43,7 +43,11 @@ std::string JitExpression::to_string() const {
     std::string load_column;
 #if JIT_LAZY_LOAD
     if (_load_column) {
+#if JIT_READER_WRAPPER
       load_column = " (Using input reader #" + std::to_string(_input_segment_wrapper->reader_index) + ")";
+#else
+      load_column = " (Using input reader #" + std::to_string(_reader_index) + ")";
+#endif
     };
 #endif
     return "x" + std::to_string(_result_value.tuple_index()) + load_column;
@@ -61,7 +65,7 @@ void JitExpression::compute(JitRuntimeContext& context) const {
 #if JIT_READER_WRAPPER
     if (_load_column) _input_segment_wrapper->read_value(context);
 #else
-    if (_load_column) context.inputs[reader_index]->read_value(context);
+    if (_load_column) context.inputs[_reader_index]->read_value(context);
 #endif
 #endif
     return;
@@ -256,7 +260,11 @@ Value<T> JitExpression::compute_and_get(JitRuntimeContext& context) const {
   if (_expression_type == JitExpressionType::Column) {
 #if JIT_LAZY_LOAD
     if (_load_column) {
+#if JIT_READER_WRAPPER
       return _input_segment_wrapper->read_and_get_value(context, T());
+#else
+      return context.inputs[_reader_index]->read_and_get_value(context, T());
+#endif
     }
 #endif
     if (_result_value.data_type() == DataType::Null) return {true, T()};

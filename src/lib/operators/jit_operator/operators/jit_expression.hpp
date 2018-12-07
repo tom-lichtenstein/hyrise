@@ -9,10 +9,15 @@
 #include "all_type_variant.hpp"
 
 #include "operators/jit_operator/jit_types.hpp"
+#if !JIT_READER_WRAPPER
+#include "jit_segment_reader.hpp"
+#endif
 
 namespace opossum {
 
+#if JIT_READER_WRAPPER
 class BaseJitSegmentReaderWrapper;
+#endif
 
 #define JIT_EXPRESSION_MEMBER(r, d, type)                                           \
   BOOST_PP_TUPLE_ELEM(3, 0, type) BOOST_PP_TUPLE_ELEM(3, 1, type); \
@@ -69,7 +74,7 @@ class JitExpression {
 #if JIT_READER_WRAPPER
     const_cast<std::shared_ptr<BaseJitSegmentReaderWrapper>&>(_input_segment_wrapper) = input_segment_wrapper;
 #else
-    const_cast<size_t&>(reader_index) = _input_segment_wrapper.reader_index;
+    const_cast<size_t&>(_reader_index) = input_segment_wrapper->reader_index;
 #endif
 #endif
   }
@@ -94,7 +99,7 @@ class JitExpression {
 #if JIT_READER_WRAPPER
   const std::shared_ptr<BaseJitSegmentReaderWrapper> _input_segment_wrapper;
 #else
-  const size_t reader_index;
+  const size_t _reader_index = 0;
 #endif
 #endif
 };
