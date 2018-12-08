@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
     config =
         std::make_unique<opossum::BenchmarkConfig>(opossum::CLIConfigParser::parse_basic_cli_options(cli_parse_result));
   }
-  global.use_limit_in_subquery = global.jit;
+  opossum::Global::get().use_limit_in_subquery = opossum::Global::get().jit;
 
   auto bool_to_str = [](bool value) { return value ? "true" : "false"; };
   auto bool_to_verb = [](bool value) { return value ? "enabled" : "disabled"; };
