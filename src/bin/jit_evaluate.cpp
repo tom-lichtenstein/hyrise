@@ -312,7 +312,7 @@ int main(int argc, char* argv[]) {
   if (PAPI_library_init(PAPI_VER_CURRENT) < 0) throw std::logic_error("PAPI error");
   std::cerr << "  supports " << PAPI_num_counters() << " event counters" << std::endl;
 #endif
-  nlohmann::json file_output{{"results", nlohmann::json::array()}};
+  nlohmann::json file_output{{"results", nlohmann::json::array()}, {"queries", nlohmann::json()}};
 
   const size_t num_experiments = config["experiments"].size();
   for (size_t current_experiment = 0; current_experiment < num_experiments; ++current_experiment) {
@@ -350,7 +350,7 @@ int main(int argc, char* argv[]) {
     } else {
       opossum::Fail("unknown query engine parameter");
     }
-    auto query_pairs = get_query_string(experiment["query_id"]);
+    auto query_pairs = get_query_string(experiment["query_id"].get<std::string>());
     if (experiment["task"] != "run" && query_pairs.size() > 1) {
       query_pairs = {query_pairs.front()};
     }
@@ -408,9 +408,18 @@ int main(int argc, char* argv[]) {
         output["results"].push_back(opossum::JitEvaluationHelper::get().result());
       }
       if (experiment["task"] != "run") continue;
-      output["query_id"] = query_id;
+      output["par_query_id"] = query_id;
       output["query_string"] = query_string;
       file_output["results"].push_back(output);
+      const auto& original_query_id = experiment["query_id"].get<std::string>();
+      if (!file_output["queries"].count(original_query_id)) {
+        file_output["queries"][original_query_id] = {{"query", config["queries"][original_query_id]["query"]}};
+        if (config["queries"][original_query_id].count("parameters")) {
+          file_output["queries"][original_query_id]["parameters"] = config["queries"][original_query_id]["parameters"];
+        } else {
+          file_output["queries"][original_query_id]["parameters"] = nlohmann::json::array();
+        }
+      }
     }
   }
   std::ofstream output_file{output_file_name};
