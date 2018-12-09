@@ -7,6 +7,8 @@
 #endif
 
 #include <iostream>
+#include <algorithm>
+
 
 #include "jit/jit_table_generator.hpp"
 #include "jit_evaluation_helper.hpp"
@@ -82,14 +84,11 @@ void remove_table_from_cache(opossum::Table& table) {
   }
 }
 
-void lqp() {
+void lqp(const std::string& query_string) {
   auto& experiment = opossum::JitEvaluationHelper::get().experiment();
-  const std::string query_id = experiment["query_id"];
   const bool optimize = experiment["optimize"];
   const std::string lqp_file = experiment["lqp_file"];
   bool mvcc = experiment["mvcc"];
-
-  const std::string query_string = opossum::JitEvaluationHelper::get().queries()[query_id]["query"];
 
   opossum::SQLPipeline pipeline =
       opossum::SQLPipelineBuilder(query_string).with_mvcc(opossum::UseMvcc(mvcc)).create_pipeline();
@@ -99,13 +98,39 @@ void lqp() {
   visualizer.visualize(plans, lqp_file + ".dot", lqp_file + ".png");
 }
 
-void pqp() {
+std::vector<std::pair<std::string, std::string>> get_query_string(const std::string& query_id) {
+  const auto& query = opossum::JitEvaluationHelper::get().queries()[query_id];
+  auto query_string = query["query"].get<std::string>();
+  if (!query.count("parameters")) {
+    return {std::make_pair(query_id, query_string)};
+  }
+  std::vector<std::vector<int>> parameters;
+  const size_t size = query["parameters"].size();
+  for (size_t i = 0; i < size; ++i) {
+    parameters.emplace_back(query["parameters"][i].get<std::vector<int>>());
+  }
+  std::vector<std::pair<std::string, std::string>> query_strings;
+  size_t n = std::count(query_string.begin(), query_string.end(), '?');
+  if (size != n) std::cerr << "Parameter count mismatch for query " << query_string << " with id: " << query_id << std::endl;
+  if (n == 0) return {std::make_pair(query_id, query_string)};
+  size_t num_iterations = parameters.front().size();
+  for (size_t i = 0; i < num_iterations; ++i) {
+    std::string new_query_string = query_string;
+    std::string id = query_id;
+    for (size_t parameter_id = 0; parameter_id < n; ++parameter_id) {
+      const auto value = std::to_string(parameters[parameter_id][i]);
+      id += "_" + value;
+      boost::replace_first(new_query_string, std::string("?"), value);
+    }
+    query_strings.push_back(std::make_pair(id, new_query_string));
+  }
+  return query_strings;
+}
+
+void pqp(const std::string& query_string) {
   auto& experiment = opossum::JitEvaluationHelper::get().experiment();
-  const std::string query_id = experiment["query_id"];
   const std::string pqp_file = experiment["pqp_file"];
   bool mvcc = experiment["mvcc"];
-
-  const std::string query_string = opossum::JitEvaluationHelper::get().queries()[query_id]["query"];
 
   opossum::Global::get().jit_evaluate = true;
   auto& result = opossum::JitEvaluationHelper::get().result();
@@ -135,12 +160,11 @@ void pqp() {
   visualizer.visualize(query_plan, pqp_file + ".dot", pqp_file + ".png");
 }
 
-void run() {
+void run(const std::string& query_string) {
   opossum::Global::get().jit_evaluate = true;
   auto& experiment = opossum::JitEvaluationHelper::get().experiment();
   const std::string query_id = experiment["query_id"];
   const auto query = opossum::JitEvaluationHelper::get().queries()[query_id];
-  std::string query_string = query["query"];
   bool mvcc = experiment["mvcc"];
 
   const auto table_names = query["tables"];
@@ -326,52 +350,68 @@ int main(int argc, char* argv[]) {
     } else {
       opossum::Fail("unknown query engine parameter");
     }
-    opossum::JitEvaluationHelper::get().experiment() = experiment;
-    nlohmann::json output{
-        {"globals", config["globals"]}, {"experiment", experiment}, {"results", nlohmann::json::array()}};
-    const uint32_t num_repetitions = experiment.count("repetitions") ? experiment["repetitions"].get<uint32_t>() : 1;
-    uint32_t current_repetition = 0;
-    for (uint32_t i = 0; i < num_repetitions; ++i) {
-      current_repetition++;
-      std::cerr << "Running experiment " << (current_experiment + 1) << "/" << num_experiments << " repetition "
-                << current_repetition << "/" << num_repetitions << std::endl;
-
-      opossum::JitEvaluationHelper::get().result() = nlohmann::json::object();
-      opossum::Global::get().times.clear();
-      opossum::Global::get().instruction_counts.clear();
-      if (experiment["task"] == "lqp") {
-        lqp();
-      } else if (experiment["task"] == "pqp") {
-        pqp();
-      } else if (experiment["task"] == "run") {
-        run();
-      } else {
-        throw std::logic_error("unknown task");
-      }
-      if constexpr (!PAPI_SUPPORT) {
-        auto& result = opossum::JitEvaluationHelper::get().result();
-        nlohmann::json operators = nlohmann::json::array();
-        for (const auto pair : opossum::Global::get().times) {
-          if (pair.second.execution_time.count() > 0) {
-            operators.push_back({{"name", pair.first}, {"prepare", false}, {"walltime", pair.second.execution_time.count()}});
-          };
-          if (pair.second.__execution_time.count() > 0) {
-            operators.push_back({{"name", "__" + pair.first}, {"prepare", false}, {"walltime", pair.second.__execution_time.count()}});
-          };
-          if (pair.second.preparation_time.count() > 0) {
-            operators.push_back({{"name", pair.first}, {"prepare", true}, {"walltime", pair.second.preparation_time.count()}});
-          };
-          if (pair.second.__preparation_time.count() > 0) {
-            operators.push_back({{"name", "__" + pair.first}, {"prepare", true}, {"walltime", pair.second.__preparation_time.count()}});
-          };
-        }
-        result["operators"] = operators;
-      }
-      output["results"].push_back(opossum::JitEvaluationHelper::get().result());
+    auto query_pairs = get_query_string(experiment["query_id"]);
+    if (experiment["task"] != "run" && query_pairs.size() > 1) {
+      query_pairs = {query_pairs.front()};
     }
-    opossum::SQLQueryCache<opossum::SQLQueryPlan>::get().clear();
-    opossum::SQLQueryCache<std::shared_ptr<opossum::AbstractLQPNode>>::get().clear();
-    file_output["results"].push_back(output);
+    const size_t query_pairs_count = query_pairs.size();
+    size_t current_query_pairs = 0;
+    for (const auto& pair : query_pairs) {
+      ++current_query_pairs;
+      const auto& [query_id, query_string] = pair;
+      opossum::JitEvaluationHelper::get().experiment() = experiment;
+      nlohmann::json output{
+              {"globals", config["globals"]}, {"experiment", experiment}, {"results", nlohmann::json::array()}};
+      const uint32_t num_repetitions = experiment.count("repetitions") ? experiment["repetitions"].get<uint32_t>() : 1;
+      uint32_t current_repetition = 0;
+      for (uint32_t i = 0; i < num_repetitions; ++i) {
+        opossum::SQLQueryCache<opossum::SQLQueryPlan>::get().clear();
+        opossum::SQLQueryCache<std::shared_ptr<opossum::AbstractLQPNode>>::get().clear();
+        current_repetition++;
+        std::cerr << "Running experiment " << (current_experiment + 1) << "/" << num_experiments
+        << " parameter combination " << (current_query_pairs) << "/" << query_pairs_count
+        << " repetition " << current_repetition << "/" << num_repetitions << std::endl;
+
+        opossum::JitEvaluationHelper::get().result() = nlohmann::json::object();
+        opossum::Global::get().times.clear();
+        opossum::Global::get().instruction_counts.clear();
+        if (experiment["task"] == "lqp") {
+          lqp(query_string);
+          break;
+        } else if (experiment["task"] == "pqp") {
+          pqp(query_string);
+          break;
+        } else if (experiment["task"] == "run") {
+          run(query_string);
+        } else {
+          throw std::logic_error("unknown task");
+        }
+        if constexpr (!PAPI_SUPPORT) {
+          auto& result = opossum::JitEvaluationHelper::get().result();
+          nlohmann::json operators = nlohmann::json::array();
+          for (const auto pair : opossum::Global::get().times) {
+            if (pair.second.execution_time.count() > 0) {
+              operators.push_back({{"name", pair.first}, {"prepare", false}, {"walltime", pair.second.execution_time.count()}});
+            };
+            if (pair.second.__execution_time.count() > 0) {
+              operators.push_back({{"name", "__" + pair.first}, {"prepare", false}, {"walltime", pair.second.__execution_time.count()}});
+            };
+            if (pair.second.preparation_time.count() > 0) {
+              operators.push_back({{"name", pair.first}, {"prepare", true}, {"walltime", pair.second.preparation_time.count()}});
+            };
+            if (pair.second.__preparation_time.count() > 0) {
+              operators.push_back({{"name", "__" + pair.first}, {"prepare", true}, {"walltime", pair.second.__preparation_time.count()}});
+            };
+          }
+          result["operators"] = operators;
+        }
+        output["results"].push_back(opossum::JitEvaluationHelper::get().result());
+      }
+      if (experiment["task"] != "run") continue;
+      output["query_id"] = query_id;
+      output["query_string"] = query_string;
+      file_output["results"].push_back(output);
+    }
   }
   std::ofstream output_file{output_file_name};
   output_file << file_output;
