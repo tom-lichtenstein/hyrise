@@ -141,9 +141,8 @@ std::shared_ptr<llvm::Module> JitCodeSpecializer::specialize_function(
   if (false) print_function(context.root_function);
 
   if (false) count_instructions(context.root_function);
-#if PAPI_SUPPORT
-  count_instructions(context.root_function);
-#endif
+
+  if (Global::get().jit_evaluate) count_instructions(context.root_function);
 
   return context.module;
 }
