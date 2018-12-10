@@ -288,6 +288,14 @@ void generte_tables(const nlohmann::json& config, const float scale_factor) {
   }
 }
 
+void reset_all() {
+  opossum::SQLQueryCache<opossum::SQLQueryPlan>::get().clear();
+  opossum::SQLQueryCache<std::shared_ptr<opossum::AbstractLQPNode>>::get().clear();
+  opossum::Global::get().times.clear();
+  opossum::Global::get().instruction_counts.clear();
+  opossum::JitEvaluationHelper::get().result() = nlohmann::json::object();
+}
+
 int main(int argc, char* argv[]) {
   std::cerr << "Starting the JIT benchmarking suite" << std::endl;
 
@@ -359,40 +367,40 @@ int main(int argc, char* argv[]) {
     } else {
       opossum::Fail("unknown query engine parameter");
     }
+
+    const uint32_t num_repetitions = experiment.count("repetitions") ? experiment["repetitions"].get<uint32_t>() : 1;
+    opossum::JitEvaluationHelper::get().experiment() = experiment;
+
     auto query_pairs = get_query_string(experiment["query_id"].get<std::string>());
-    if (experiment["task"] != "run" && query_pairs.size() > 1) {
-      query_pairs = {query_pairs.front()};
+    if (query_pairs.size() > 1) {
+      if (experiment["task"] != "run") {
+        query_pairs = {query_pairs.front()};
+      } else {
+        for (uint32_t i = 0; i < num_repetitions; ++i) {
+          reset_all();
+          run(query_pairs[(query_pairs.size()-1)/2].second);
+        }
+      }
     }
     const size_t query_pairs_count = query_pairs.size();
     size_t current_query_pairs = 0;
     for (const auto& pair : query_pairs) {
       ++current_query_pairs;
       const auto& [query_id, query_string] = pair;
-      opossum::JitEvaluationHelper::get().experiment() = experiment;
       nlohmann::json output{
               {"globals", config["globals"]}, {"experiment", experiment}, {"results", nlohmann::json::array()}};
-      const uint32_t num_repetitions = experiment.count("repetitions") ? experiment["repetitions"].get<uint32_t>() : 1;
       uint32_t current_repetition = 0;
       if (experiment["task"] == "run") {
         // one warmup run
-        opossum::SQLQueryCache<opossum::SQLQueryPlan>::get().clear();
-        opossum::SQLQueryCache<std::shared_ptr<opossum::AbstractLQPNode>>::get().clear();
-        opossum::Global::get().times.clear();
-        opossum::Global::get().instruction_counts.clear();
-        opossum::JitEvaluationHelper::get().result() = nlohmann::json::object();
+        reset_all();
         run(query_string);
       }
       for (uint32_t i = 0; i < num_repetitions; ++i) {
-        opossum::SQLQueryCache<opossum::SQLQueryPlan>::get().clear();
-        opossum::SQLQueryCache<std::shared_ptr<opossum::AbstractLQPNode>>::get().clear();
-        opossum::Global::get().times.clear();
-        opossum::Global::get().instruction_counts.clear();
+        reset_all();
         current_repetition++;
         std::cerr << "Running experiment " << (current_experiment + 1) << "/" << num_experiments
         << " parameter combination " << (current_query_pairs) << "/" << query_pairs_count
         << " repetition " << current_repetition << "/" << num_repetitions << std::endl;
-
-        opossum::JitEvaluationHelper::get().result() = nlohmann::json::object();
         if (experiment["task"] == "lqp") {
           lqp(query_string);
           break;
@@ -401,31 +409,31 @@ int main(int argc, char* argv[]) {
           break;
         } else if (experiment["task"] == "run") {
           run(query_string);
+          if constexpr (!PAPI_SUPPORT) {
+            auto& result = opossum::JitEvaluationHelper::get().result();
+            nlohmann::json operators = nlohmann::json::array();
+            for (const auto pair : opossum::Global::get().times) {
+              if (pair.second.execution_time.count() > 0) {
+                operators.push_back({{"name", pair.first}, {"prepare", false}, {"walltime", pair.second.execution_time.count()}});
+              };
+              if (pair.second.__execution_time.count() > 0) {
+                operators.push_back({{"name", "__" + pair.first}, {"prepare", false}, {"walltime", pair.second.__execution_time.count()}});
+              };
+              if (pair.second.preparation_time.count() > 0) {
+                operators.push_back({{"name", pair.first}, {"prepare", true}, {"walltime", pair.second.preparation_time.count()}});
+              };
+              if (pair.second.__preparation_time.count() > 0) {
+                operators.push_back({{"name", "__" + pair.first}, {"prepare", true}, {"walltime", pair.second.__preparation_time.count()}});
+              };
+            }
+            result["operators"] = operators;
+          }
+          output["results"].push_back(opossum::JitEvaluationHelper::get().result());
         } else {
           throw std::logic_error("unknown task");
         }
-        if constexpr (!PAPI_SUPPORT) {
-          auto& result = opossum::JitEvaluationHelper::get().result();
-          nlohmann::json operators = nlohmann::json::array();
-          for (const auto pair : opossum::Global::get().times) {
-            if (pair.second.execution_time.count() > 0) {
-              operators.push_back({{"name", pair.first}, {"prepare", false}, {"walltime", pair.second.execution_time.count()}});
-            };
-            if (pair.second.__execution_time.count() > 0) {
-              operators.push_back({{"name", "__" + pair.first}, {"prepare", false}, {"walltime", pair.second.__execution_time.count()}});
-            };
-            if (pair.second.preparation_time.count() > 0) {
-              operators.push_back({{"name", pair.first}, {"prepare", true}, {"walltime", pair.second.preparation_time.count()}});
-            };
-            if (pair.second.__preparation_time.count() > 0) {
-              operators.push_back({{"name", "__" + pair.first}, {"prepare", true}, {"walltime", pair.second.__preparation_time.count()}});
-            };
-          }
-          result["operators"] = operators;
-        }
-        output["results"].push_back(opossum::JitEvaluationHelper::get().result());
       }
-      if (experiment["task"] != "run") continue;
+      if (experiment["task"] != "run") break;
       output["par_query_id"] = query_id;
       output["query_string"] = query_string;
       file_output["results"].push_back(output);
