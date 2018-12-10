@@ -20,24 +20,24 @@ std::map<std::string, std::shared_ptr<opossum::Table>> JitTableGenerator::genera
     add_column<int32_t>(columns_by_chunk, column_definitions, "ID", cardinalities,
                         [&](std::vector<size_t> indices) { return indices[0]; });
     add_column<int32_t>(columns_by_chunk, column_definitions, "A", cardinalities,
-                        [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); });
+                        [&](std::vector<size_t> indices) { return generator.random_number(0, 99999); });
     add_column<int32_t>(columns_by_chunk, column_definitions, "B", cardinalities,
-                        [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); });
+                        [&](std::vector<size_t> indices) { return generator.random_number(0, 99999); });
     add_column<int32_t>(columns_by_chunk, column_definitions, "C", cardinalities,
-                        [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); });
+                        [&](std::vector<size_t> indices) { return generator.random_number(0, 99999); });
     add_column<int32_t>(columns_by_chunk, column_definitions, "D", cardinalities,
-                        [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); });
+                        [&](std::vector<size_t> indices) { return generator.random_number(0, 99999); });
     add_nullable_column<int32_t>(columns_by_chunk, column_definitions, "E", cardinalities,
-                                 [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); },
+                                 [&](std::vector<size_t> indices) { return generator.random_number(0, 99999); },
                                  [&](std::vector<size_t> indices) { return false; });
     add_nullable_column<int32_t>(columns_by_chunk, column_definitions, "F", cardinalities,
-                                 [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); },
+                                 [&](std::vector<size_t> indices) { return generator.random_number(0, 99999); },
                                  [&](std::vector<size_t> indices) { return false; });
     add_nullable_column<int32_t>(columns_by_chunk, column_definitions, "G", cardinalities,
-                                 [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); },
+                                 [&](std::vector<size_t> indices) { return generator.random_number(0, 99999); },
                                  [&](std::vector<size_t> indices) { return false; });
     add_nullable_column<int32_t>(columns_by_chunk, column_definitions, "H", cardinalities,
-                                 [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); },
+                                 [&](std::vector<size_t> indices) { return generator.random_number(0, 99999); },
                                  [&](std::vector<size_t> indices) { return false; });
 
     add_column<int32_t>(columns_by_chunk, column_definitions, "X0", cardinalities,
@@ -129,7 +129,7 @@ std::map<std::string, std::shared_ptr<opossum::Table>> JitTableGenerator::genera
     TableColumnDefinitions column_definitions;
 
     constexpr size_t number_of_chars = 5;
-    const size_t scale_factor = pow(10, number_of_chars);  // 100,000
+    const size_t scale_factor = pow(10, number_of_chars)-1;  // 100,000
 
     add_column<int32_t>(columns_by_chunk, column_definitions, "ID", cardinalities,
                         [&](std::vector<size_t> indices) { return indices[0]; });
@@ -153,7 +153,7 @@ std::map<std::string, std::shared_ptr<opossum::Table>> JitTableGenerator::genera
                             [&](std::vector<size_t> indices) {
                                 char str[number_of_chars];
                                 for (size_t i = 0; i < number_of_chars; ++i) {
-                                    str[i] = static_cast<char>(generator.random_number(65, 75));
+                                    str[i] = static_cast<char>(generator.random_number(65, 74));
                                 }
                                 return std::string(str, number_of_chars);
                             });
@@ -161,7 +161,7 @@ std::map<std::string, std::shared_ptr<opossum::Table>> JitTableGenerator::genera
                             [&](std::vector<size_t> indices) {
                                 char str[number_of_chars];
                                 for (size_t i = 0; i < number_of_chars; ++i) {
-                                    str[i] = static_cast<char>(generator.random_number(65, 75));
+                                    str[i] = static_cast<char>(generator.random_number(65, 74));
                                 }
                                 return std::string(str, number_of_chars);
                             });
