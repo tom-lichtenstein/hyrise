@@ -22,6 +22,8 @@
 #include "storage/vector_compression/fixed_size_byte_aligned/fixed_size_byte_aligned_vector.hpp"
 #include "tpch/tpch_db_generator.hpp"
 
+#include "optimizer/optimizer.hpp"
+
 #include "global.hpp"
 #include "sql/sql_pipeline_builder.hpp"
 #include "sql/sql_query_cache.hpp"
@@ -190,8 +192,11 @@ void run(const std::string& query_string) {
     result["replaced_values"] = 0;
   }
 
+  const bool optimize = experiment["optimize"];
+  const auto optimizer = optimize ? opossum::Optimizer::create_default_optimizer() : std::make_shared<opossum::Optimizer>(0);
+
   opossum::SQLPipeline pipeline =
-          opossum::SQLPipelineBuilder(query_string).with_mvcc(opossum::UseMvcc(mvcc)).create_pipeline();
+          opossum::SQLPipelineBuilder(query_string).with_mvcc(opossum::UseMvcc(mvcc)).with_optimizer(optimizer).create_pipeline();
   const auto table = pipeline.get_result_table();
 
   if (experiment.count("print") && experiment["print"]) {

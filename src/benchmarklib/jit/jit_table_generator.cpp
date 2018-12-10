@@ -129,7 +129,7 @@ std::map<std::string, std::shared_ptr<opossum::Table>> JitTableGenerator::genera
     TableColumnDefinitions column_definitions;
 
     constexpr size_t number_of_chars = 5;
-    const size_t scale_factor = pow(10, number_of_chars);
+    const size_t scale_factor = pow(10, number_of_chars);  // 100,000
 
     add_column<int32_t>(columns_by_chunk, column_definitions, "ID", cardinalities,
                         [&](std::vector<size_t> indices) { return indices[0]; });
