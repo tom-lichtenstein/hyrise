@@ -66,7 +66,7 @@ const std::shared_ptr<AbstractJittableSink> JitOperatorWrapper::_sink() const {
 void JitOperatorWrapper::insert_loads(const bool lazy) {
   const auto input_wrappers = _source()->input_wrappers();
   std::vector<std::shared_ptr<AbstractJittable>> jit_operators;
-  if constexpr (!JIT_LAZY_LOAD) {
+  if (JIT_LAZY_LOAD || lazy) {
     const auto input_col_num = _source()->input_columns().size();
     const auto operators_size = _specialized_function->jit_operators.size();
     jit_operators.resize(operators_size + input_col_num);

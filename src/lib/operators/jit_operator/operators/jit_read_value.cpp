@@ -12,7 +12,11 @@ std::string JitReadValue::description() const {
 }
 
 void JitReadValue::_consume(JitRuntimeContext& context) const {
+#if JIT_READER_WRAPPER
   _input_segment_wrapper->read_value(context);
+#else
+  context.inputs[_reader_index]->read_value(context);
+#endif
   _emit(context);
 }
 

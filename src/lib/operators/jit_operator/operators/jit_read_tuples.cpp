@@ -264,7 +264,6 @@ void JitReadTuples::execute(JitRuntimeContext& context) const {
   context.begin_operator = std::chrono::high_resolution_clock::now();
 #endif
   for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
-#if JIT_LAZY_LOAD
     _emit(context);
     // We advance all segment iterators, after processing the tuple with the next operators.
 #if JIT_OLD_LAZY_LOAD
@@ -272,19 +271,6 @@ void JitReadTuples::execute(JitRuntimeContext& context) const {
     for (uint32_t i = 0; i < input_size; ++i) {
       _input_wrappers[i]->increment(context);
     }
-#endif
-#else
-    const auto input_size = _input_wrappers.size();
-    for (uint32_t i = 0; i < input_size; ++i) {
-#if JIT_READER_WRAPPER
-      _input_wrappers[i]->read_value(context);
-#else
-      context.inputs[i]->read_value(context);
-#endif
-    }
-
-    // DTRACE_PROBE1(HYRISE, JIT_OPERATOR_EXECUTED, std::string("ReadTuple").c_str());
-    _emit(context);
 #endif
   }
 }
