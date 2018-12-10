@@ -373,17 +373,26 @@ int main(int argc, char* argv[]) {
               {"globals", config["globals"]}, {"experiment", experiment}, {"results", nlohmann::json::array()}};
       const uint32_t num_repetitions = experiment.count("repetitions") ? experiment["repetitions"].get<uint32_t>() : 1;
       uint32_t current_repetition = 0;
+      if (experiment["task"] == "run") {
+        // one warmup run
+        opossum::SQLQueryCache<opossum::SQLQueryPlan>::get().clear();
+        opossum::SQLQueryCache<std::shared_ptr<opossum::AbstractLQPNode>>::get().clear();
+        opossum::Global::get().times.clear();
+        opossum::Global::get().instruction_counts.clear();
+        opossum::JitEvaluationHelper::get().result() = nlohmann::json::object();
+        run(query_string);
+      }
       for (uint32_t i = 0; i < num_repetitions; ++i) {
         opossum::SQLQueryCache<opossum::SQLQueryPlan>::get().clear();
         opossum::SQLQueryCache<std::shared_ptr<opossum::AbstractLQPNode>>::get().clear();
+        opossum::Global::get().times.clear();
+        opossum::Global::get().instruction_counts.clear();
         current_repetition++;
         std::cerr << "Running experiment " << (current_experiment + 1) << "/" << num_experiments
         << " parameter combination " << (current_query_pairs) << "/" << query_pairs_count
         << " repetition " << current_repetition << "/" << num_repetitions << std::endl;
 
         opossum::JitEvaluationHelper::get().result() = nlohmann::json::object();
-        opossum::Global::get().times.clear();
-        opossum::Global::get().instruction_counts.clear();
         if (experiment["task"] == "lqp") {
           lqp(query_string);
           break;
