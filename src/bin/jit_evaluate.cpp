@@ -137,6 +137,9 @@ void pqp(const std::string& query_string) {
   opossum::Global::get().jit_evaluate = true;
   auto& result = opossum::JitEvaluationHelper::get().result();
 
+  const bool optimize = experiment["optimize"];
+  const auto optimizer = optimize ? opossum::Optimizer::create_default_optimizer() : std::make_shared<opossum::Optimizer>(0);
+
   result = nlohmann::json::object();
   if (experiment.at("engine") == "jit") {
     opossum::JitEvaluationHelper::get().result()["dynamic_resolved"] = 0;
@@ -149,6 +152,7 @@ void pqp(const std::string& query_string) {
   opossum::SQLPipeline pipeline = opossum::SQLPipelineBuilder(query_string)
                                       .with_mvcc(opossum::UseMvcc(mvcc))
                                       .dont_cleanup_temporaries()
+                                      .with_optimizer(optimizer)
                                       .create_pipeline();
   pipeline.get_result_table();
   opossum::SQLQueryPlan query_plan(opossum::CleanupTemporaries::No);
