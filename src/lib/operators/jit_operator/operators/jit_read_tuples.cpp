@@ -104,17 +104,15 @@ void JitReadTuples::before_query(const Table& in_table, const std::vector<AllTyp
   for (const auto& input_parameter : _input_parameters) {
     if (!input_parameter.use_value_id) set_value_from_input(input_parameter.tuple_value, *parameter_value_itr++);
   }
-
-  if (in_table.chunk_count() > 0 && _input_wrappers.empty()) {
-    add_input_segment_iterators(context, in_table, *in_table.get_chunk(ChunkID(0)), true);
-  }
 }
 
 void JitReadTuples::create_default_input_wrappers() {
   PerformanceWarning("Jit uses virtual function calls to read attribute values.");
+  /*
   for (size_t i = 0; i < _input_columns.size(); ++i) {
     _input_wrappers.push_back(std::make_shared<BaseJitSegmentReaderWrapper>(i));
   }
+  */
 }
 
 void JitReadTuples::add_input_segment_iterators(JitRuntimeContext& context, const Table& in_table, const Chunk& in_chunk, const bool prepare_wrapper) {
@@ -249,6 +247,7 @@ bool JitReadTuples::before_chunk(const Table& in_table, const ChunkID chunk_id,
   }
 
   bool same_type = true;
+  /*
   for (const auto wrapper : _input_wrappers) {
     bool tmp = wrapper->same_type(context);
     if (!tmp) {
@@ -256,6 +255,7 @@ bool JitReadTuples::before_chunk(const Table& in_table, const ChunkID chunk_id,
     }
     same_type &= tmp;
   }
+   */
   return same_type;
 }
 

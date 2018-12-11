@@ -2,6 +2,8 @@
 
 #include <x86intrin.h>
 
+// #include <boost/type_index.hpp>
+
 #include "../jit_types.hpp"
 #include "storage/segment_iterables/create_iterable_from_attribute_vector.hpp"
 
@@ -42,9 +44,12 @@ class BaseJitSegmentReaderWrapper {
     // Fail("Should not be executed.");
     context.inputs[reader_index]->read_value(context);
   }
-  virtual bool same_type(JitRuntimeContext& context) {
+  virtual bool same_type(JitRuntimeContext& context) = 0;
+  /*
+  {
     return true;
   }
+  */
   BOOST_PP_SEQ_FOR_EACH(JIT_EXPLICIT_INSTANTIATION_GET_CONST_FUNCTION, _, JIT_DATA_TYPE_INFO)
 
 #if JIT_OLD_LAZY_LOAD
@@ -220,6 +225,7 @@ class JitSegmentReaderWrapper : public BaseJitSegmentReaderWrapper {
 #endif
 
   bool same_type(JitRuntimeContext& context) final {
+    // std::cout << "Current type: " << boost::typeindex::type_id<JitSegmentReader>().pretty_name() << std::endl;
     use_cast = static_cast<bool>(std::dynamic_pointer_cast<JitSegmentReader>(context.inputs[reader_index]));
     return use_cast;
   }

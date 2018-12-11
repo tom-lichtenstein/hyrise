@@ -136,7 +136,10 @@ void JitOperatorWrapper::_choose_execute_func() {
 
   const auto in_table = input_left()->get_output();
 
-  if (_source()->input_wrappers().empty()) _source()->create_default_input_wrappers();
+  if (in_table->chunk_count() > 0 && _source()->input_wrappers().empty()) {
+    JitRuntimeContext context;
+    _source()->add_input_segment_iterators(context, *in_table, *(in_table->get_chunk(ChunkID(0))), true);
+  }
   for (auto& jit_operator : _specialized_function->jit_operators) {
     if (auto jit_validate = std::dynamic_pointer_cast<JitValidate>(jit_operator)) {
       jit_validate->set_input_table_type(in_table->type());
@@ -205,14 +208,17 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
       std::cout << "chunk no " << chunk_id << std::endl;
     }
      */
-    const bool same_type = _source()->before_chunk(*in_table, chunk_id, _input_parameter_values, context);
+    // const bool same_type =
+    _source()->before_chunk(*in_table, chunk_id, _input_parameter_values, context);
     before_chunk_time += timer.lap();
-    if (same_type) {
+    // if (same_type) {
       _specialized_function->execute_func(_source().get(), context);
+    /*
     } else {
       PerformanceWarning("Jit is interpreted as input reader types mismatch.")
       _source()->execute(context);
     }
+    */
     function_time += timer.lap();
     _sink()->after_chunk(in_table, *out_table, context);
     after_chunk_time += timer.lap();
