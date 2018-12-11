@@ -268,6 +268,7 @@ void generte_tables(const nlohmann::json& config, const float scale_factor) {
     std::cerr << "Dictionary encoding tables" << std::endl;
     for (const auto& table_name : opossum::StorageManager::get().table_names()) {
       auto table = opossum::StorageManager::get().get_table(table_name);
+      /*
       opossum::ChunkEncodingSpec chunk_spec;
       for (const auto& column_data_type : table->column_data_types()) {
         if (column_data_type == opossum::DataType::String) {
@@ -277,6 +278,8 @@ void generte_tables(const nlohmann::json& config, const float scale_factor) {
         }
       }
       opossum::ChunkEncoder::encode_all_chunks(table, chunk_spec);
+      */
+      opossum::ChunkEncoder::encode_all_chunks(table);
     }
   }
 
@@ -357,13 +360,14 @@ int main(int argc, char* argv[]) {
       if (!experiment.count("allow_single_predicate")) experiment["allow_single_predicate"] = false;
       if (!experiment.count("use_value_id")) experiment["use_value_id"] = true;
       if (!experiment.count("reference_output")) experiment["reference_output"] = true;
-      opossum::Global::get().jit = true;
-      opossum::Global::get().lazy_load = experiment["lazy_load"];
-      opossum::Global::get().jit_validate = experiment["jit_validate"];
-      opossum::Global::get().jit_limit = experiment["jit_limit"];
-      opossum::Global::get().allow_single_predicate = experiment["allow_single_predicate"];
-      opossum::Global::get().use_value_id = experiment["use_value_id"];
-      opossum::Global::get().reference_output = experiment["reference_output"];
+      auto& global = opossum::Global::get();
+      global.jit = true;
+      global.lazy_load = experiment["lazy_load"];
+      global.jit_validate = experiment["jit_validate"];
+      global.jit_limit = experiment["jit_limit"];
+      global.allow_single_predicate = experiment["allow_single_predicate"];
+      global.use_value_id = experiment["use_value_id"];
+      global.reference_output = experiment["reference_output"];
     } else {
       opossum::Fail("unknown query engine parameter");
     }
