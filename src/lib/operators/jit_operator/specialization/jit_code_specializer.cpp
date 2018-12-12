@@ -257,10 +257,13 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
     auto function_has_opossum_namespace = boost::starts_with(function_name, "_ZNK7opossum") ||
                                           boost::starts_with(function_name, "_ZN7opossum");
 
-    print = boost::contains(function_name, "read_value") || boost::contains(function_name, "read_and_get_value")
-            || boost::contains(function_name, "increment") // /* || boost::contains(function_name, "jit_aggregate_compute") */;
-            || boost::contains(function_name, "jit_compute_and_get") || boost::contains(function_name,  "compute_and_get");
-    print = false;
+    if (print) {
+      print = boost::contains(function_name, "read_value") || boost::contains(function_name, "read_and_get_value")
+              || boost::contains(function_name, "increment") // /* || boost::contains(function_name, "jit_aggregate_compute") */;
+                 /* || boost::contains(function_name, "jit_compute_and_get") || boost::contains(function_name,  "compute_and_get"); */
+              || boost::contains(function_name, "Iterator") || boost::contains(function_name, "Iterable");
+    }
+
 
 
     // string segment access functions cause errors during code specialization
@@ -336,14 +339,17 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
       if (Global::get().jit_evaluate)
         JitEvaluationHelper::get().result()["inlined_functions"] =
             JitEvaluationHelper::get().result()["inlined_functions"].get<int32_t>() + 1;
-      if (print) std::cerr << "Func: " << function_name << " inlined - class name " << class_name << std::endl;
+      if (print) std::cerr << "Func:     inlined " << function_name << std::endl;
       // std::cout << "+++     inlined func: " << function_name << std::endl;
       for (const auto& new_call_site : info.InlinedCallSites) {
         call_sites.push(new_call_site);
       }
     } else {
-      if (print) std::cerr << "Func: " << function_name << " not inlined" << std::endl;
+      if (print) std::cerr << "Func: not inlined " << function_name << std::endl;
       // std::cout << "--- not inlined func: " << function_name << std::endl;
+    }
+    if (class_name != "" && print) {
+      std::cerr << "--- class name: " << class_name << std::endl;
     }
 
     // std::cout << "Inlining function: " << function.getName().str() << std::endl;
