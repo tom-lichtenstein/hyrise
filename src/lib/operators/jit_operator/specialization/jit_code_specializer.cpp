@@ -185,6 +185,8 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
 
     std::string class_name;
 
+    bool print = Global::get().debug_print;
+
     bool virtual_resolved = false;
     // Resolve indirect (virtual) function calls
     if (call_site.isIndirectCall()) {
@@ -231,7 +233,7 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
           virtual_resolved = true;
         }
       } else {
-        if (call_site.getCalledFunction()) {
+        if (call_site.getCalledFunction() && print) {
           std::cerr << "could not inline v call: " << call_site.getCalledFunction()->getName().str() << std::endl;
         }
         // The virtual call could not be resolved. There is nothing we can inline so we move on.
@@ -242,8 +244,6 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
         continue;
       }
     }
-
-    bool print = false;
 
     auto function = call_site.getCalledFunction();
     // ignore invalid functions
@@ -277,7 +277,7 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
     // All function that are not in the opossum:: namespace are not considered for inlining. Instead, a function
     // declaration (without a function body) is created.
     if ((!function_has_opossum_namespace || string_segment_access) && function_name != "__clang_call_terminate") {
-      if (print) std::cerr << "Func: " << function_name << " ! function_has_opossum_namespace" << std::endl;
+      if (print) std::cerr << "Func: " << function_name << " ! function_has_opossum_namespace or string_segment_access" << std::endl;
       context.llvm_value_map[function] = _create_function_declaration(context, *function, function->getName());
       call_sites.pop();
       continue;

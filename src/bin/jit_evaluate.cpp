@@ -368,6 +368,7 @@ int main(int argc, char* argv[]) {
       global.allow_single_predicate = experiment["allow_single_predicate"];
       global.use_value_id = experiment["use_value_id"];
       global.reference_output = experiment["reference_output"];
+      if (experiment.count("debug_print")) global.debug_print = experiment["debug_print"];
     } else {
       opossum::Fail("unknown query engine parameter");
     }

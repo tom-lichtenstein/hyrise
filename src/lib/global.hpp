@@ -29,6 +29,7 @@ struct Global : public Singleton<Global> {
   bool allow_single_predicate = false;
   bool use_value_id = true;
   bool reference_output = true;
+  bool debug_print = false;
   std::map<std::string, OperatorTimes> times;
 
   std::map<std::string, size_t> instruction_counts;
