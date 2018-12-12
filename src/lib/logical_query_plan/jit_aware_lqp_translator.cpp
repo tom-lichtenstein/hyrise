@@ -472,8 +472,8 @@ bool _expressions_are_jittable(const std::vector<std::shared_ptr<AbstractExpress
         switch (predicate_expression->predicate_condition) {
           case PredicateCondition::In:
           case PredicateCondition::NotIn:
-          case PredicateCondition::Like:
-          case PredicateCondition::NotLike:
+          // case PredicateCondition::Like:
+          // case PredicateCondition::NotLike:
             return false;
           default:
             break;

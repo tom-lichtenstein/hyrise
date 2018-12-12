@@ -116,18 +116,28 @@ void jit_or(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleVa
 #endif
 
 // TODO(anyone) State Machine is currently build for every comparison. It should be build only once.
-bool jit_like(const std::string& a, const std::string& b) {
+bool old_jit_like(const std::string& a, const std::string& b) {
   const auto regex_string = LikeMatcher::sql_like_to_regex(b);
   const auto regex = std::regex{regex_string};
   return std::regex_match(a, regex);
 }
 
 // TODO(anyone) State Machine is currently build for every comparison. It should be build only once.
-bool jit_not_like(const std::string& a, const std::string& b) {
+bool old_jit_not_like(const std::string& a, const std::string& b) {
   const auto regex_string = LikeMatcher::sql_like_to_regex(b);
   const auto regex = std::regex{regex_string};
   return !std::regex_match(a, regex);
 }
+
+/*
+bool jit_like(const std::string& a, const std::regex& regex, const bool&) {
+  return std::regex_match(a, regex);
+}
+
+bool jit_not_like(const std::string& a, const std::regex& regex, const bool&) {
+  return !std::regex_match(a, regex);
+}
+*/
 
 void jit_is_null(const JitTupleValue& lhs, const JitTupleValue& result, JitRuntimeContext& context) {
   result.set_is_null(false, context);

@@ -170,6 +170,10 @@ void JitOperatorWrapper::_choose_execute_func() {
   }
   // specialize = false;
   if (specialize) {
+#if IS_DEBUG
+    std::cerr << "Specializing function" << std::endl;
+    std::cerr << description(DescriptionMode::MultiLine) << std::endl;
+#endif
     // this corresponds to "opossum::JitReadTuples::execute(opossum::JitRuntimeContext&) const"
     _specialized_function->execute_func = _specialized_function->module.specialize_and_compile_function<void(const JitReadTuples*, JitRuntimeContext&)>(
         "_ZNK7opossum13JitReadTuples7executeERNS_17JitRuntimeContextE",

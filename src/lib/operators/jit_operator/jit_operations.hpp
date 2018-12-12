@@ -164,8 +164,19 @@ struct JitGreaterThanEquals {
 };
 const JitGreaterThanEquals jit_string_greater_than_equals{};
 
-bool jit_like(const std::string& a, const std::string& b);
-bool jit_not_like(const std::string& a, const std::string& b);
+bool old_jit_like(const std::string& a, const std::string& b);
+bool old_jit_not_like(const std::string& a, const std::string& b);
+
+bool jit_like(const std::string& a, const std::regex& regex, const bool&) {
+  return std::regex_match(a, regex);
+}
+bool jit_not_like(const std::string& a, const std::regex& regex, const bool&) {
+  return std::regex_match(a, regex);
+}
+template <typename T, typename = typename std::enable_if_t<!std::is_same_v<T, bool>>>
+T jit_like(const std::string& a, const std::regex& regex, const T&) { return T(); }
+template <typename T, typename = typename std::enable_if_t<!std::is_same_v<T, bool>>>
+T jit_not_like(const std::string& a, const std::regex& regex, const T&) { return T(); }
 
 // The InvalidTypeCatcher acts as a fallback implementation, if template specialization
 // fails for a type combination.

@@ -15,12 +15,12 @@ namespace opossum {
  */
 
 #define JIT_EXPLICIT_INSTANTIATION_GET_FUNCTION(r, _, type) \
-virtual Value<BOOST_PP_TUPLE_ELEM(3, 0, type)> read_and_get_value(JitRuntimeContext& context, BOOST_PP_TUPLE_ELEM(3, 0, type)) { \
+virtual Value<BOOST_PP_TUPLE_ELEM(3, 0, type)> read_and_get_value(JitRuntimeContext& context, const BOOST_PP_TUPLE_ELEM(3, 0, type)&) { \
     Fail("Reading wrong datatype from segment reader"); \
   }
 
 #define JIT_EXPLICIT_INSTANTIATION_GET_CONST_FUNCTION(r, _, type) \
-  virtual Value<BOOST_PP_TUPLE_ELEM(3, 0, type)> read_and_get_value(JitRuntimeContext& context, BOOST_PP_TUPLE_ELEM(3, 0, type)) const { \
+  virtual Value<BOOST_PP_TUPLE_ELEM(3, 0, type)> read_and_get_value(JitRuntimeContext& context, const BOOST_PP_TUPLE_ELEM(3, 0, type)&) const { \
      return context.inputs[reader_index]->read_and_get_value(context, BOOST_PP_TUPLE_ELEM(3, 0, type)()); \
   }  // Used when input segments not available during specialization  Fail("Reading wrong datatype from segment reader wrapper");
 
@@ -143,7 +143,7 @@ public:
    */
 
   __attribute__((always_inline))
-  Value<DataType> read_and_get_value(JitRuntimeContext& context, DataType) final {
+  Value<DataType> read_and_get_value(JitRuntimeContext& context, const DataType&) final {
 #if JIT_LAZY_LOAD
 #if !JIT_OLD_LAZY_LOAD
     const size_t current_offset = context.chunk_offset;
@@ -201,7 +201,7 @@ class JitSegmentReaderWrapper : public BaseJitSegmentReaderWrapper {
     }
   }
 
-  Value<DATA_TYPE> read_and_get_value(JitRuntimeContext& context, DATA_TYPE) const final {
+  Value<DATA_TYPE> read_and_get_value(JitRuntimeContext& context, const DATA_TYPE&) const final {
     if (use_cast) {
       //std::static_pointer_cast<JitSegmentReader>(context.inputs[reader_index])->read_value(context);
       return static_cast<JitSegmentReader*>(context.inputs[reader_index].get())->read_and_get_value(context, DATA_TYPE());

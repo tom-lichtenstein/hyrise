@@ -5,6 +5,7 @@
 #include <boost/preprocessor/seq/enum.hpp>
 
 #include <variant>
+#include <regex>
 
 #include "all_type_variant.hpp"
 
@@ -102,6 +103,7 @@ class JitExpression {
   const size_t _reader_index = 0;
 #endif
 #endif
+  std::shared_ptr<std::regex> _regex;
 };
 
 }  // namespace opossum

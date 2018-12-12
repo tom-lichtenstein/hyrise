@@ -36,7 +36,16 @@ JitExpression::JitExpression(const std::shared_ptr<const JitExpression>& left_ch
     : _left_child{left_child},
       _right_child{right_child},
       _expression_type{expression_type},
-      _result_value{JitTupleValue(_compute_result_type(), result_tuple_index)} {}
+      _result_value{JitTupleValue(_compute_result_type(), result_tuple_index)} {
+#if JIT_READER_WRAPPER
+  if (_expression_type == JitExpressionType::Like || _expression_type == JitExpressionType::Like) {
+    JitRuntimeContext context;
+    const auto like_expression = right_child->compute_and_get<std::string>(context).value;
+    const auto regex_string = LikeMatcher::sql_like_to_regex(like_expression);
+    _regex = std::make_shared<std::regex>(regex_string);
+  }
+#endif
+}
 
 std::string JitExpression::to_string() const {
   if (_expression_type == JitExpressionType::Column) {
@@ -170,10 +179,10 @@ void JitExpression::compute(JitRuntimeContext& context) const {
       jit_compute(jit_less_than_equals, _left_child->result(), _right_child->result(), _result_value, context);
       break;
     case JitExpressionType::Like:
-      jit_compute(jit_like, _left_child->result(), _right_child->result(), _result_value, context);
+      jit_compute(old_jit_like, _left_child->result(), _right_child->result(), _result_value, context);
       break;
     case JitExpressionType::NotLike:
-      jit_compute(jit_not_like, _left_child->result(), _right_child->result(), _result_value, context);
+      jit_compute(old_jit_not_like, _left_child->result(), _right_child->result(), _result_value, context);
       break;
 
     case JitExpressionType::And:
@@ -301,10 +310,20 @@ Value<T> JitExpression::compute_and_get(JitRuntimeContext& context) const {
         return jit_compute_and_get<T>(jit_string_less_than, _left_child, _right_child, context);
       case JitExpressionType::LessThanEquals:
         return jit_compute_and_get<T>(jit_string_less_than_equals, _left_child, _right_child, context);
-      case JitExpressionType::Like:
-        return jit_compute_and_get<T>(jit_like, _left_child, _right_child, context);
-      case JitExpressionType::NotLike:
-        return jit_compute_and_get<T>(jit_not_like, _left_child, _right_child, context);
+      case JitExpressionType::Like: {
+        const auto& result = _left_child->compute_and_get<std::string>(context);
+        if (_left_child->result().is_nullable() && result.is_null) {
+          return {true, T()};
+        }
+        return {false, jit_like(result.value, *_regex, T())};
+      }
+      case JitExpressionType::NotLike: {
+        const auto& result = _left_child->compute_and_get<std::string>(context);
+        if (_left_child->result().is_nullable() && result.is_null) {
+          return {true, T()};
+        }
+        return {false, jit_not_like(result.value, *_regex, T())};
+      }
       default:
         Fail("Expression type not supported.");
     }
