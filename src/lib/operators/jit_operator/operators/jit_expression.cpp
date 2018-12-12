@@ -311,18 +311,26 @@ Value<T> JitExpression::compute_and_get(JitRuntimeContext& context) const {
       case JitExpressionType::LessThanEquals:
         return jit_compute_and_get<T>(jit_string_less_than_equals, _left_child, _right_child, context);
       case JitExpressionType::Like: {
-        const auto& result = _left_child->compute_and_get<std::string>(context);
-        if (_left_child->result().is_nullable() && result.is_null) {
-          return {true, T()};
+        if constexpr (std::is_same_v<T, bool>) {
+          const auto& result = _left_child->compute_and_get<std::string>(context);
+          if (_left_child->result().is_nullable() && result.is_null) {
+            return {true, T()};
+          }
+          return {false, std::regex_match(result.value, *_regex)};
+        } else {
+          Fail("Like always returns a bool.");
         }
-        return {false, jit_like(result.value, *_regex, T())};
       }
       case JitExpressionType::NotLike: {
-        const auto& result = _left_child->compute_and_get<std::string>(context);
-        if (_left_child->result().is_nullable() && result.is_null) {
-          return {true, T()};
+        if constexpr (std::is_same_v<T, bool>) {
+          const auto& result = _left_child->compute_and_get<std::string>(context);
+          if (_left_child->result().is_nullable() && result.is_null) {
+            return {true, T()};
+          }
+          return {false, !std::regex_match(result.value, *_regex)};
+        } else {
+          Fail("Not like always returns a bool.");
         }
-        return {false, jit_not_like(result.value, *_regex, T())};
       }
       default:
         Fail("Expression type not supported.");
