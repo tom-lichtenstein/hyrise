@@ -372,7 +372,9 @@ int main(int argc, char* argv[]) {
     } else {
       opossum::Fail("unknown query engine parameter");
     }
-
+    if constexpr (PAPI_SUPPORT) {
+      experiment["repetitions"] = 1;
+    }
     const uint32_t num_repetitions = experiment.count("repetitions") ? experiment["repetitions"].get<uint32_t>() : 1;
     opossum::JitEvaluationHelper::get().experiment() = experiment;
 
