@@ -457,7 +457,12 @@ int main(int argc, char* argv[]) {
       file_output["results"].push_back(output);
       const auto& original_query_id = experiment["query_id"].get<std::string>();
       if (!file_output["queries"].count(original_query_id)) {
-        file_output["queries"][original_query_id] = {{"query", config["queries"][original_query_id]["query"]}};
+        file_output["queries"][original_query_id] = nlohmann::json{};
+        if (config["queries"][original_query_id].count("query")) {
+          file_output["queries"][original_query_id]["query"] = config["queries"][original_query_id]["query"];
+        } else {
+          file_output["queries"][original_query_id]["queries"] = config["queries"][original_query_id]["queries"];
+        }
         if (config["queries"][original_query_id].count("parameters")) {
           file_output["queries"][original_query_id]["parameters"] = config["queries"][original_query_id]["parameters"];
         } else {
