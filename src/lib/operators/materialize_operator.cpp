@@ -23,9 +23,11 @@ std::shared_ptr<const Table> Materialize::_on_execute() {
 
   size_t counter{0};
 
+  size_t number_of_columns = std::min(_number_of_columns, table->column_count());
+
   for (const auto& chunk : table->chunks()) {
     const auto& segments = chunk->segments();
-    for (ColumnID column_id{0}; column_id < _number_of_columns; ++column_id) {
+    for (ColumnID column_id{0}; column_id < number_of_columns; ++column_id) {
       const auto& segment = segments[column_id];
       resolve_data_and_segment_type(*segment, [&](auto type, auto& typed_segment) {
         using ColumnDataType = typename decltype(type)::type;
