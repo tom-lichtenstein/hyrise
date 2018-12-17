@@ -207,6 +207,8 @@ set(
     operators/maintenance/show_tables.cpp
     operators/maintenance/show_tables.hpp
     operators/maintenance/show_tables.hpp
+    operators/materialize_operator.cpp
+    operators/materialize_operator.hpp
     operators/operator_join_predicate.cpp
     operators/operator_join_predicate.hpp
     operators/operator_performance_data.cpp

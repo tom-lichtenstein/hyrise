@@ -24,6 +24,8 @@
 #include "operators/jit_optimal_scan_operator.hpp"
 #include "operators/jit_optimal_expression_operator.hpp"
 
+#include "operators/materialize_operator.hpp"
+
 namespace opossum {
 
 SQLPipelineStatement::SQLPipelineStatement(const std::string& sql, std::shared_ptr<hsql::SQLParserResult> parsed_sql,
@@ -229,7 +231,9 @@ const std::shared_ptr<SQLQueryPlan>& SQLPipelineStatement::get_query_plan() {
 
     // Reset time to exclude previous pipeline steps
     started = std::chrono::high_resolution_clock::now();
+    bool custom = false;
     if (Global::get().jit_evaluate && JitEvaluationHelper::get().experiment().at("hand_written")) {
+      custom = true;
       if (_sql_string == "SELECT s_suppkey, l_suppkey from supplier JOIN lineitem ON s_suppkey = l_suppkey") {
         _query_plan->add_tree_by_root(std::make_shared<JitOptimalOperator>());
       } else if (_sql_string == "SELECT A FROM TABLE_SCAN WHERE A < 50000") {
@@ -237,10 +241,15 @@ const std::shared_ptr<SQLQueryPlan>& SQLPipelineStatement::get_query_plan() {
       } else if (_sql_string == "SELECT ID FROM TABLE_AGGREGATE WHERE (A + B + C + D + E + F) > X1") {
         _query_plan->add_tree_by_root(std::make_shared<JitOptimalExpressionOperator>());
       } else {
-        _query_plan->add_tree_by_root(_lqp_translator->translate_node(lqp));
+        custom = false;
       }
-    } else {
-      _query_plan->add_tree_by_root(_lqp_translator->translate_node(lqp));
+    }
+    if (!custom) {
+      auto pqp = _lqp_translator->translate_node(lqp);
+      if (Global::get().materialize > 0) {
+        pqp = std::make_shared<Materialize>(pqp, Global::get().materialize);
+      }
+      _query_plan->add_tree_by_root(pqp);
     }
 
     done = std::chrono::high_resolution_clock::now();

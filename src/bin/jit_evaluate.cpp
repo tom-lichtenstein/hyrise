@@ -344,7 +344,7 @@ int main(int argc, char* argv[]) {
   std::cerr << "  supports " << PAPI_num_counters() << " event counters" << std::endl;
 #endif
   nlohmann::json file_output{{"results", nlohmann::json::array()}, {"queries", nlohmann::json()}};
-
+  auto& global = opossum::Global::get();
   const size_t num_experiments = config["experiments"].size();
   for (size_t current_experiment = 0; current_experiment < num_experiments; ++current_experiment) {
     auto& experiment = config["experiments"][current_experiment];
@@ -371,7 +371,6 @@ int main(int argc, char* argv[]) {
       if (!experiment.count("allow_single_predicate")) experiment["allow_single_predicate"] = false;
       if (!experiment.count("use_value_id")) experiment["use_value_id"] = true;
       if (!experiment.count("reference_output")) experiment["reference_output"] = true;
-      auto& global = opossum::Global::get();
       global.jit = true;
       global.lazy_load = experiment["lazy_load"];
       global.jit_validate = experiment["jit_validate"];
@@ -380,6 +379,7 @@ int main(int argc, char* argv[]) {
       global.use_value_id = experiment["use_value_id"];
       global.reference_output = experiment["reference_output"];
       if (experiment.count("debug_print")) global.debug_print = experiment["debug_print"];
+      if (experiment.count("materialize")) global.materialize = experiment["materialize"].get<size_t>();
     } else {
       opossum::Fail("unknown query engine parameter");
     }
