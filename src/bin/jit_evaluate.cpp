@@ -102,9 +102,18 @@ void lqp(const std::string& query_string) {
 
 std::vector<std::pair<std::string, std::string>> get_query_string(const std::string& query_id) {
   const auto& query = opossum::JitEvaluationHelper::get().queries()[query_id];
-  auto query_string = query["query"].get<std::string>();
+  std::vector<std::pair<std::string, std::string>> queries;
+  if (query.count("queries")) {
+    size_t counter{0};
+    for (auto&& single_query : query["queries"].get<std::vector<std::string>>()) {
+      queries.push_back(std::make_pair(query_id + "_" + std::to_string(counter++), std::move(single_query)));
+    }
+  } else {
+    auto query_string = query["query"].get<std::string>();
+    queries.push_back(std::make_pair(query_id, query_string));
+  }
   if (!query.count("parameters")) {
-    return {std::make_pair(query_id, query_string)};
+    return queries;
   }
   std::vector<std::vector<int>> parameters;
   const size_t size = query["parameters"].size();
@@ -112,19 +121,21 @@ std::vector<std::pair<std::string, std::string>> get_query_string(const std::str
     parameters.emplace_back(query["parameters"][i].get<std::vector<int>>());
   }
   std::vector<std::pair<std::string, std::string>> query_strings;
-  size_t n = std::count(query_string.begin(), query_string.end(), '?');
-  if (size != n) std::cerr << "Parameter count mismatch for query " << query_string << " with id: " << query_id << std::endl;
-  if (n == 0) return {std::make_pair(query_id, query_string)};
+  size_t n = std::count(queries.front().second.begin(), queries.front().second.end(), '?');
+  if (size != n) std::cerr << "Parameter count mismatch for query " << queries.front().second << " with id: " << query_id << std::endl;
+  if (n == 0) return queries;
   size_t num_iterations = parameters.front().size();
-  for (size_t i = 0; i < num_iterations; ++i) {
-    std::string new_query_string = query_string;
-    std::string id = query_id;
-    for (size_t parameter_id = 0; parameter_id < n; ++parameter_id) {
-      const auto value = std::to_string(parameters[parameter_id][i]);
-      id += "_" + value;
-      boost::replace_first(new_query_string, std::string("?"), value);
+  for (const auto& single_query : queries) {
+    for (size_t i = 0; i < num_iterations; ++i) {
+      std::string new_query_string = single_query.second;
+      std::string id = single_query.first;
+      for (size_t parameter_id = 0; parameter_id < n; ++parameter_id) {
+        const auto value = std::to_string(parameters[parameter_id][i]);
+        id += "_" + value;
+        boost::replace_first(new_query_string, std::string("?"), value);
+      }
+      query_strings.push_back(std::make_pair(id, new_query_string));
     }
-    query_strings.push_back(std::make_pair(id, new_query_string));
   }
   return query_strings;
 }
