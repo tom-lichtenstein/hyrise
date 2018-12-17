@@ -361,6 +361,7 @@ int main(int argc, char* argv[]) {
       experiment["use_limit_in_subquery"] = experiment.at("engine") == "jit";
     }
     opossum::Global::get().use_limit_in_subquery = experiment["use_limit_in_subquery"];
+    if (experiment.count("materialize")) global.materialize = experiment["materialize"].get<size_t>();
     if (experiment.at("engine") == "opossum") {
       opossum::Global::get().jit = false;
     } else if (experiment.at("engine") == "jit") {
@@ -379,7 +380,6 @@ int main(int argc, char* argv[]) {
       global.use_value_id = experiment["use_value_id"];
       global.reference_output = experiment["reference_output"];
       if (experiment.count("debug_print")) global.debug_print = experiment["debug_print"];
-      if (experiment.count("materialize")) global.materialize = experiment["materialize"].get<size_t>();
     } else {
       opossum::Fail("unknown query engine parameter");
     }
