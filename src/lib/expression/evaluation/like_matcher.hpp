@@ -29,7 +29,7 @@ class LikeMatcher {
   explicit LikeMatcher(const std::string& pattern);
 
   enum class Wildcard { SingleChar /* '_' */, AnyChars /* '%' */ };
-  using PatternToken = boost::variant<std::string, Wildcard>;  // Keep type order, users rely on which()
+  using PatternToken = std::variant<std::string, Wildcard>;  // Keep type order, users rely on which()
   using PatternTokens = std::vector<PatternToken>;
 
   /**
