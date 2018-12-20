@@ -4,7 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "boost/variant.hpp"
+#include <variant>
+
 #include "utils/assert.hpp"
 
 namespace opossum {
