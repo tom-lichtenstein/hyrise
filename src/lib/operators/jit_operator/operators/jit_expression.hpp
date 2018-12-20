@@ -5,7 +5,6 @@
 #include <boost/preprocessor/seq/enum.hpp>
 
 #include <variant>
-#include <regex>
 
 #include "all_type_variant.hpp"
 
@@ -15,6 +14,8 @@
 #endif
 
 namespace opossum {
+
+class LikeMatcher;
 
 #if JIT_READER_WRAPPER
 class BaseJitSegmentReaderWrapper;
@@ -103,7 +104,7 @@ class JitExpression {
   const size_t _reader_index = 0;
 #endif
 #endif
-  std::shared_ptr<std::regex> _regex;
+  std::shared_ptr<LikeMatcher> _matcher;
 };
 
 }  // namespace opossum

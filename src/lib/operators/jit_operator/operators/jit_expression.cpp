@@ -8,6 +8,8 @@
 #include "jit_read_tuples.hpp"
 #include "jit_segment_reader.hpp"
 
+#include "expression/evaluation/like_matcher.hpp"
+
 namespace opossum {
 
 JitExpression::JitExpression(const JitTupleValue& tuple_value, const AllTypeVariant& variant, const bool disable_variant)
@@ -40,9 +42,8 @@ JitExpression::JitExpression(const std::shared_ptr<const JitExpression>& left_ch
 #if JIT_READER_WRAPPER
   if (_expression_type == JitExpressionType::Like || _expression_type == JitExpressionType::Like) {
     JitRuntimeContext context;
-    const auto like_expression = right_child->compute_and_get<std::string>(context).value;
-    const auto regex_string = LikeMatcher::sql_like_to_regex(like_expression);
-    _regex = std::make_shared<std::regex>(regex_string);
+    const auto like_pattern = right_child->compute_and_get<std::string>(context).value;
+    _matcher = std::make_shared<LikeMatcher>(like_pattern);
   }
 #endif
 }
@@ -310,26 +311,20 @@ Value<T> JitExpression::compute_and_get(JitRuntimeContext& context) const {
         return jit_compute_and_get<T>(jit_string_less_than, _left_child, _right_child, context);
       case JitExpressionType::LessThanEquals:
         return jit_compute_and_get<T>(jit_string_less_than_equals, _left_child, _right_child, context);
-      case JitExpressionType::Like: {
-        if constexpr (std::is_same_v<T, bool>) {
-          const auto& result = _left_child->compute_and_get<std::string>(context);
-          if (_left_child->result().is_nullable() && result.is_null) {
-            return {true, T()};
-          }
-          return {false, std::regex_match(result.value, *_regex)};
-        } else {
-          Fail("Like always returns a bool.");
-        }
-      }
+      case JitExpressionType::Like:
       case JitExpressionType::NotLike: {
         if constexpr (std::is_same_v<T, bool>) {
-          const auto& result = _left_child->compute_and_get<std::string>(context);
-          if (_left_child->result().is_nullable() && result.is_null) {
+          const auto& operand = _left_child->compute_and_get<std::string>(context);
+          if (_left_child->result().is_nullable() && operand.is_null) {
             return {true, T()};
           }
-          return {false, !std::regex_match(result.value, *_regex)};
+          bool result_value = false;
+          _matcher->resolve(_expression_type == JitExpressionType::NotLike, [&](const auto& resolved_matcher) {
+            result_value = resolved_matcher(operand.value);
+          });
+          return {false, result_value};
         } else {
-          Fail("Not like always returns a bool.");
+          Fail("(NOT) LIKE always returns a bool.");
         }
       }
       default:
