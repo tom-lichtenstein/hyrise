@@ -290,6 +290,11 @@ class JitTupleValue {
   // the same value in a given JitRuntimeContext.
   bool operator==(const JitTupleValue& other) const;
 
+  void set_type(const DataType data_type, const bool is_nullable) const {
+    const_cast<DataType&>(_data_type) = data_type;
+    const_cast<bool&>(_is_nullable) = is_nullable;
+  }
+
  private:
   const DataType _data_type;
   const bool _is_nullable;

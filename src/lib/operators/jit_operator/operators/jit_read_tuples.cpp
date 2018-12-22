@@ -52,6 +52,38 @@ std::string JitReadTuples::description() const {
   return desc.str();
 }
 
+void JitReadTuples::set_values_from_input(const bool use_value_id, const std::vector<AllTypeVariant>& parameter_values, JitRuntimeContext& context) {
+  const auto set_value_from_input = [&context](const JitTupleValue& tuple_value, const AllTypeVariant& value) {
+    auto data_type = tuple_value.data_type();
+    if (data_type == DataType::Null) {
+      tuple_value.set_is_null(true, context);
+    } else {
+      resolve_data_type(data_type, [&](auto type) {
+        using TupleDataType = typename decltype(type)::type;
+        tuple_value.set<TupleDataType>(boost::get<TupleDataType>(value), context);
+        if (tuple_value.is_nullable()) {
+          tuple_value.set_is_null(variant_is_null(value), context);
+        }
+        // Non-jit operators store bool values as int values
+        if constexpr (std::is_same_v<TupleDataType, Bool>) {
+          tuple_value.set<bool>(boost::get<TupleDataType>(value), context);
+        }
+      });
+    }
+  };
+
+  // Copy all input literals to the runtime tuple
+  for (const auto& input_literal : _input_literals) {
+    if (input_literal.use_value_id == use_value_id) set_value_from_input(input_literal.tuple_value, input_literal.value);
+  }
+  // Copy all parameter values to the runtime tuple
+  DebugAssert(_input_parameters.size() == parameter_values.size(), "Wrong number of parameters");
+  auto parameter_value_itr = parameter_values.cbegin();
+  for (const auto& input_parameter : _input_parameters) {
+    if (input_parameter.use_value_id == use_value_id) set_value_from_input(input_parameter.tuple_value, *parameter_value_itr++);
+  }
+}
+
 void JitReadTuples::before_query(const Table& in_table, const std::vector<AllTypeVariant>& parameter_values,
                                  JitRuntimeContext& context) {
   // Create a runtime tuple of the appropriate size
@@ -74,48 +106,24 @@ void JitReadTuples::before_query(const Table& in_table, const std::vector<AllTyp
   } else {
     context.limit_rows = std::numeric_limits<size_t>::max();
   }
-
-  const auto set_value_from_input = [&context](const JitTupleValue& tuple_value, const AllTypeVariant& value) {
-    auto data_type = tuple_value.data_type();
-    if (data_type == DataType::Null) {
-      tuple_value.set_is_null(true, context);
-    } else {
-      resolve_data_type(data_type, [&](auto type) {
-        using TupleDataType = typename decltype(type)::type;
-        tuple_value.set<TupleDataType>(boost::get<TupleDataType>(value), context);
-        if (tuple_value.is_nullable()) {
-          tuple_value.set_is_null(variant_is_null(value), context);
-        }
-        // Non-jit operators store bool values as int values
-        if constexpr (std::is_same_v<TupleDataType, Bool>) {
-          tuple_value.set<bool>(boost::get<TupleDataType>(value), context);
-        }
-      });
-    }
-  };
-
-  // Copy all input literals to the runtime tuple
-  for (const auto& input_literal : _input_literals) {
-    if (!input_literal.use_value_id) set_value_from_input(input_literal.tuple_value, input_literal.value);
-  }
-  // Copy all parameter values to the runtime tuple
-  DebugAssert(_input_parameters.size() == parameter_values.size(), "Wrong number of parameters");
-  auto parameter_value_itr = parameter_values.cbegin();
-  for (const auto& input_parameter : _input_parameters) {
-    if (!input_parameter.use_value_id) set_value_from_input(input_parameter.tuple_value, *parameter_value_itr++);
-  }
+  set_values_from_input(false, parameter_values, context);
 }
 
 void JitReadTuples::create_default_input_wrappers() {
   PerformanceWarning("Jit uses virtual function calls to read attribute values.");
-  /*
+  _input_wrappers.clear();
   for (size_t i = 0; i < _input_columns.size(); ++i) {
     _input_wrappers.push_back(std::make_shared<BaseJitSegmentReaderWrapper>(i));
   }
-  */
+
 }
 
-void JitReadTuples::add_input_segment_iterators(JitRuntimeContext& context, const Table& in_table, const Chunk& in_chunk, const bool prepare_wrapper) {
+bool JitReadTuples::add_input_segment_iterators(JitRuntimeContext& context, const Table& in_table, const Chunk& in_chunk, const bool prepare_wrapper, const bool use_value_id) {
+  if (prepare_wrapper) {
+    _input_wrappers.clear();
+  } else {
+    context.inputs.clear();
+  }
   const auto add_iterator = [&] (auto type, auto it, bool is_nullable, auto input_column) {
     using ColumnDataType = decltype(type);
     using IteratorType = decltype(it);
@@ -140,8 +148,9 @@ void JitReadTuples::add_input_segment_iterators(JitRuntimeContext& context, cons
     const auto column_id = input_column.column_id;
     const auto segment = in_chunk.get_segment(column_id);
     const auto is_nullable = in_table.column_is_nullable(column_id);
-    if (input_column.use_value_id) {
+    if (input_column.use_value_id && use_value_id) {
       const auto dictionary_segment = std::dynamic_pointer_cast<BaseDictionarySegment>(segment);
+      if (!dictionary_segment) return false;
       DebugAssert(dictionary_segment, "Segment is not a dictionary");
       create_iterable_from_attribute_vector(*dictionary_segment).with_iterators([&](auto it, auto end) {
         add_iterator(static_cast<JitValueID>(0), it, is_nullable, input_column);
@@ -165,13 +174,13 @@ void JitReadTuples::add_input_segment_iterators(JitRuntimeContext& context, cons
       }
     }
   }
+  return true;
 }
 
 bool JitReadTuples::before_chunk(const Table& in_table, const ChunkID chunk_id,
                                  const std::vector<AllTypeVariant>& parameter_values,
                                  JitRuntimeContext& context) {
   const auto& in_chunk = *in_table.get_chunk(chunk_id);
-  context.inputs.clear();
   context.chunk_offset = 0;
   context.chunk_size = in_chunk.size();
   context.chunk_id = chunk_id;
@@ -199,64 +208,89 @@ bool JitReadTuples::before_chunk(const Table& in_table, const ChunkID chunk_id,
   }
 
   // Create the segment iterator for each input segment and store them to the runtime context
-  add_input_segment_iterators(context, in_table, in_chunk, false);
-  for (const auto& value_id_predicate : _value_id_predicates) {
-    const auto& input_column = _input_columns[value_id_predicate.input_column_index];
-    const auto segment = in_chunk.get_segment(input_column.column_id);
-    const auto dictionary = std::dynamic_pointer_cast<BaseDictionarySegment>(segment);
-    AllTypeVariant value;
-    size_t tuple_index;
-    if (value_id_predicate.input_literal_index) {
-      const auto& literal = _input_literals[*value_id_predicate.input_literal_index];
-      value = literal.value;
-      tuple_index = literal.tuple_value.tuple_index();
-    } else {
-      DebugAssert(value_id_predicate.input_parameter_index, "Neither input literal nor parameter index have been set.");
-      const auto& parameter = _input_parameters[*value_id_predicate.input_parameter_index];
-      value = parameter_values[*value_id_predicate.input_parameter_index];
-      tuple_index = parameter.tuple_value.tuple_index();
-    }
-    const auto casted_value = cast_all_type_variant_to_type(value, input_column.data_type);
+  bool use_value_id = add_input_segment_iterators(context, in_table, in_chunk, false, true);
+  if (use_value_id) {
+    for (const auto& value_id_predicate : _value_id_predicates) {
+      const auto& input_column = _input_columns[value_id_predicate.input_column_index];
+      const auto segment = in_chunk.get_segment(input_column.column_id);
+      const auto dictionary = std::dynamic_pointer_cast<BaseDictionarySegment>(segment);
+      AllTypeVariant value;
+      size_t tuple_index;
+      if (value_id_predicate.input_literal_index) {
+        const auto& literal = _input_literals[*value_id_predicate.input_literal_index];
+        value = literal.value;
+        tuple_index = literal.tuple_value.tuple_index();
+      } else {
+        DebugAssert(value_id_predicate.input_parameter_index, "Neither input literal nor parameter index have been set.");
+        const auto& parameter = _input_parameters[*value_id_predicate.input_parameter_index];
+        value = parameter_values[*value_id_predicate.input_parameter_index];
+        tuple_index = parameter.tuple_value.tuple_index();
+      }
+      const auto casted_value = cast_all_type_variant_to_type(value, input_column.data_type);
 
-    ValueID value_id;
-    switch (value_id_predicate.expression_type) {
-      case JitExpressionType::Equals:
-      case JitExpressionType::NotEquals:
-        // check if value exists in segment
-        if (dictionary->lower_bound(casted_value) == dictionary->upper_bound(casted_value)) {
-          value_id = INVALID_VALUE_ID;
+      ValueID value_id;
+      switch (value_id_predicate.expression_type) {
+        case JitExpressionType::Equals:
+        case JitExpressionType::NotEquals:
+          // check if value exists in segment
+          if (dictionary->lower_bound(casted_value) == dictionary->upper_bound(casted_value)) {
+            value_id = INVALID_VALUE_ID;
+            break;
+          }
+        case JitExpressionType::LessThan:
+        case JitExpressionType::GreaterThanEquals:
+          value_id = dictionary->lower_bound(casted_value);
           break;
-        }
-      case JitExpressionType::LessThan:
-      case JitExpressionType::GreaterThanEquals:
-        value_id = dictionary->lower_bound(casted_value);
-        break;
-      case JitExpressionType::LessThanEquals:
-      case JitExpressionType::GreaterThan:
-        value_id = dictionary->upper_bound(casted_value);
-        break;
-      default:
-        Fail("Unsupported expression type for binary value id predicate");
+        case JitExpressionType::LessThanEquals:
+        case JitExpressionType::GreaterThan:
+          value_id = dictionary->upper_bound(casted_value);
+          break;
+        default:
+          Fail("Unsupported expression type for binary value id predicate");
+      }
+      if (value_id == INVALID_VALUE_ID) {
+        value_id = std::numeric_limits<JitValueID>::max();
+      } else if (static_cast<ValueID::base_type>(value_id) >= std::numeric_limits<JitValueID>::max()) {
+        Fail("ValueID used too high.");
+      }
+      context.tuple.set<JitValueID>(tuple_index, value_id);
     }
-    if (value_id == INVALID_VALUE_ID) {
-      value_id = std::numeric_limits<JitValueID>::max();
-    } else if (static_cast<ValueID::base_type>(value_id) >= std::numeric_limits<JitValueID>::max()) {
-      Fail("ValueID used too high.");
+  } else {
+    add_input_segment_iterators(context, in_table, in_chunk, false, false);
+    set_values_from_input(true, parameter_values, context);
+    for (const auto& value_id_predicate : _value_id_predicates) {
+      const auto& input_column = _input_columns[value_id_predicate.input_column_index];
+      value_id_predicate.jit_expression.set_expression_type(value_id_predicate.original_expression_type);
+      AllTypeVariant value;
+      if (value_id_predicate.input_literal_index) {
+        const auto& literal = _input_literals[*value_id_predicate.input_literal_index];
+        value = literal.value;
+      } else {
+        DebugAssert(value_id_predicate.input_parameter_index, "Neither input literal nor parameter index have been set.");
+        value = parameter_values[*value_id_predicate.input_parameter_index];
+      }
+      DataType data_type = data_type_from_all_type_variant(value);
+
+      if (value_id_predicate.swap) {  // swap
+        value_id_predicate.jit_expression.left_child()->result().set_type(data_type, data_type == DataType::Null);
+        value_id_predicate.jit_expression.left_child()->set_disable_variant(false);
+        value_id_predicate.jit_expression.right_child()->result().set_type(input_column.data_type, input_column.tuple_value.is_nullable());
+      } else {  // normal
+        value_id_predicate.jit_expression.left_child()->result().set_type(input_column.data_type, input_column.tuple_value.is_nullable());
+        value_id_predicate.jit_expression.right_child()->result().set_type(data_type, data_type == DataType::Null);
+        value_id_predicate.jit_expression.right_child()->set_disable_variant(false);
+      }
     }
-    context.tuple.set<JitValueID>(tuple_index, value_id);
   }
 
-  bool same_type = true;
-  /*
   for (const auto wrapper : _input_wrappers) {
-    bool tmp = wrapper->same_type(context);
-    if (!tmp) {
-      std::cout << "chunk id: " << chunk_id << " type changed for " << wrapper->reader_index << std::endl;
+    if (!wrapper->same_type(context)) {
+      // std::cout << "chunk id: " << chunk_id << " type changed for " << wrapper->reader_index << std::endl;
+      create_default_input_wrappers();
+      return false;
     }
-    same_type &= tmp;
   }
-   */
-  return same_type;
+  return true;
 }
 
 void JitReadTuples::execute(JitRuntimeContext& context) const {
@@ -352,13 +386,15 @@ void JitReadTuples::add_value_id_predicate(const JitExpression& jit_expression) 
 
   DebugAssert(literal_id || parameter_id, "Neither input literal nor parameter index have been set.");
 
+  const auto original_expression_type = jit_expression.expression_type();
+
   if (expression == JitExpressionType::GreaterThan) {
     jit_expression.set_expression_type(swap ? JitExpressionType::LessThan : JitExpressionType::GreaterThanEquals);
   } else if (expression == JitExpressionType::LessThanEquals) {
     jit_expression.set_expression_type(swap ? JitExpressionType::GreaterThanEquals : JitExpressionType::LessThan);
   }
 
-  _value_id_predicates.push_back({*column_id, expression, literal_id, parameter_id});
+  _value_id_predicates.push_back({*column_id, expression, literal_id, parameter_id, jit_expression, original_expression_type, swap});
 }
 
 size_t JitReadTuples::add_temporary_value() {

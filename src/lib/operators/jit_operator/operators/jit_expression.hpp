@@ -84,6 +84,9 @@ class JitExpression {
   void set_expression_type(const JitExpressionType expression_type) const {
     const_cast<JitExpressionType&>(_expression_type) = expression_type;
   }
+  void set_disable_variant(const bool disable_variant) const {
+    const_cast<bool&>(_disable_variant) = _disable_variant;
+  }
 
  private:
   std::pair<const DataType, const bool> _compute_result_type();

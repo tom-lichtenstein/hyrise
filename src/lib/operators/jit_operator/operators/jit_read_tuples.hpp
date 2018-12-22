@@ -38,6 +38,9 @@ struct JitValueIDPredicate {
   const JitExpressionType expression_type;
   const std::optional<size_t> input_literal_index;
   const std::optional<size_t> input_parameter_index;
+  const JitExpression& jit_expression;
+  const JitExpressionType original_expression_type;
+  const bool swap;
 };
 
 class JitReadValue;
@@ -74,6 +77,8 @@ class JitReadTuples : public AbstractJittable {
 
   void set_parameters(const std::unordered_map<ParameterID, AllTypeVariant>& parameters);
 
+  void set_values_from_input(const bool use_value_id, const std::vector<AllTypeVariant>& parameter_values, JitRuntimeContext& context);
+
   const std::vector<std::shared_ptr<BaseJitSegmentReaderWrapper>>& input_wrappers() const;
   const std::vector<JitInputColumn>& input_columns() const;
   const std::vector<JitInputLiteral>& input_literals() const;
@@ -89,7 +94,7 @@ class JitReadTuples : public AbstractJittable {
 
   std::shared_ptr<AbstractExpression> row_count_expression() const;
 
-  void add_input_segment_iterators(JitRuntimeContext& context, const Table& in_table, const Chunk& in_chunk, const bool prepare_wrapper);
+  bool add_input_segment_iterators(JitRuntimeContext& context, const Table& in_table, const Chunk& in_chunk, const bool prepare_wrapper, const bool use_value_id);
 
  protected:
   uint32_t _num_tuple_values{0};

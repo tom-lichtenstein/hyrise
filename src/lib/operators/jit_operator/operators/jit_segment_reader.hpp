@@ -44,12 +44,10 @@ class BaseJitSegmentReaderWrapper {
     // Fail("Should not be executed.");
     context.inputs[reader_index]->read_value(context);
   }
-  virtual bool same_type(JitRuntimeContext& context) = 0;
-  /*
+  virtual bool same_type(JitRuntimeContext& context)
   {
     return true;
   }
-  */
   BOOST_PP_SEQ_FOR_EACH(JIT_EXPLICIT_INSTANTIATION_GET_CONST_FUNCTION, _, JIT_DATA_TYPE_INFO)
 
 #if JIT_OLD_LAZY_LOAD
