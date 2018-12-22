@@ -263,15 +263,20 @@ nlohmann::json generate_input_different_selectivity(const bool use_jit) {
 
 void generte_tables(const nlohmann::json& config, const float scale_factor) {
   opossum::StorageManager::get().reset();
+  size_t chunk_size = 100000;
+  if (config["globals"].count("chunk_size")) {
+    chunk_size = config["globals"]["chunk_size"].get<size_t>();
+  }
+
   if (config["globals"]["use_tpch_tables"]) {
     std::cerr << "Generating TPCH tables with scale factor " << scale_factor << std::endl;
-    opossum::TpchDbGenerator generator(scale_factor, opossum::ChunkID(100000));
+    opossum::TpchDbGenerator generator(scale_factor, opossum::ChunkID(chunk_size));
     generator.generate_and_store();
   }
 
   if (config["globals"]["use_other_tables"]) {
     std::cerr << "Generating JIT tables with scale factor " << scale_factor << std::endl;
-    opossum::JitTableGenerator generator(scale_factor, opossum::ChunkID(100000));
+    opossum::JitTableGenerator generator(scale_factor, opossum::ChunkID(chunk_size));
     generator.generate_and_store();
   }
 
@@ -290,7 +295,15 @@ void generte_tables(const nlohmann::json& config, const float scale_factor) {
       }
       opossum::ChunkEncoder::encode_all_chunks(table, chunk_spec);
       */
-      opossum::ChunkEncoder::encode_all_chunks(table);
+      //opossum::ChunkEncoder::encode_all_chunks(table);
+      const auto column_types = table->column_data_types();
+
+      for (opossum::ChunkID chunk_id{0}; chunk_id < table->chunk_count(); ++chunk_id) {
+        auto chunk = table->get_chunk(chunk_id);
+        if (chunk->size() == chunk_size) {
+          opossum::ChunkEncoder::encode_chunk(chunk, column_types, opossum::SegmentEncodingSpec{});
+        }
+      }
     }
   }
 
@@ -394,7 +407,11 @@ int main(int argc, char* argv[]) {
       if (experiment["task"] != "run") {
         query_pairs = {query_pairs.front()};
       } else {
-        for (uint32_t i = 0; i < num_repetitions; ++i) {
+        size_t warm_up = num_repetitions;
+        if (experiment.count("warmup")) {
+          warm_up = experiment["warmup"].get<size_t>();
+        }
+        for (uint32_t i = 0; i < warm_up; ++i) {
           reset_all();
           run(query_pairs[(query_pairs.size()-1)/2].second);
         }
@@ -410,8 +427,14 @@ int main(int argc, char* argv[]) {
       uint32_t current_repetition = 0;
       if (experiment["task"] == "run") {
         // one warmup run
-        reset_all();
-        run(query_string);
+        size_t warm_up = 1;
+        if (experiment.count("warmup")) {
+          warm_up = experiment["warmup"].get<size_t>();
+        }
+        for (uint32_t i = 0; i < warm_up; ++i) {
+          reset_all();
+          run(query_string);
+        }
       }
       for (uint32_t i = 0; i < num_repetitions; ++i) {
         reset_all();
