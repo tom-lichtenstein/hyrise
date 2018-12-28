@@ -53,6 +53,7 @@ class DictionarySegmentIterable : public PointAccessibleSegmentIterable<Dictiona
   std::shared_ptr<const Dictionary> _dictionary;
 
  private:
+  friend class JitOptimalScanOperator;
   template <typename ZsIteratorType>
   class Iterator : public BaseSegmentIterator<Iterator<ZsIteratorType>, SegmentIteratorValue<T>> {
    public:

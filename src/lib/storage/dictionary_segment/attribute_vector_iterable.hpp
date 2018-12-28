@@ -42,7 +42,8 @@ class AttributeVectorIterable : public PointAccessibleSegmentIterable<AttributeV
   const BaseCompressedVector& _attribute_vector;
   const ValueID _null_value_id;
 
- private:
+private:
+  friend class JitOptimalScanOperator;
   template <typename ZsIteratorType>
   class Iterator : public BaseSegmentIterator<Iterator<ZsIteratorType>, SegmentIteratorValue<ValueID>> {
    public:

@@ -203,6 +203,8 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   _sink()->before_query(*in_table, *out_table, context);
   auto before_query_time = timer.lap();
 
+  bool same_type = true;
+
   // std::cout << "total chunks: " << in_table->chunk_count() << std::endl;
   for (opossum::ChunkID chunk_id{0}; chunk_id < in_table->chunk_count() && context.limit_rows; ++chunk_id) {
     /*
@@ -212,8 +214,7 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
       std::cout << "chunk no " << chunk_id << std::endl;
     }
      */
-    const bool same_type =
-    _source()->before_chunk(*in_table, chunk_id, _input_parameter_values, context);
+    same_type &= _source()->before_chunk(*in_table, chunk_id, _input_parameter_values, context);
     before_chunk_time += timer.lap();
     if (same_type) {
       _specialized_function->execute_func(_source().get(), context);

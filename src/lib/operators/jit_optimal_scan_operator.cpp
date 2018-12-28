@@ -9,6 +9,7 @@
 #include "operators/jit_operator/operators/jit_read_value.hpp"
 #include "operators/jit_operator/operators/jit_read_tuples.hpp"
 #include "operators/jit_operator/operators/jit_write_offset.hpp"
+#include "storage/dictionary_segment/dictionary_segment_iterable.hpp"
 #include "storage/reference_segment.hpp"
 #include "storage/storage_manager.hpp"
 #include "validate.hpp"
@@ -30,6 +31,8 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
   std::chrono::nanoseconds scan{0};
 
   using OwnJitSegmentReader = JitSegmentReader<ValueSegmentIterable<int32_t>::NonNullIterator, int32_t, false>;
+  using DictIterator = DictionarySegmentIterable<int32_t, pmr_vector<int>>::Iterator<std::vector<uint32_t>::const_iterator>;
+  using OwnDictionaryReader = JitSegmentReader<DictIterator, JitValueID, false>;
 
   {
     JitRuntimeContext context;
@@ -44,7 +47,7 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
     // constexpr auto a_id = 0;
     constexpr int32_t val = 50000;
     read_tuples.add_literal_value(AllTypeVariant(val));
-    // constexpr auto l_id = 1;
+    constexpr auto l_id = 1;
     read_tuples.add_temporary_value();
     // constexpr auto tmp_id = 2;
     // const auto tpl =
@@ -65,34 +68,23 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
     for (opossum::ChunkID chunk_id{0}; chunk_id < table->chunk_count(); ++chunk_id) {
       read_tuples.before_chunk(*table, chunk_id, std::vector<AllTypeVariant>(), context);
 
-      for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
-        /*
-        for (const auto input : context.inputs) {
-          input->read_value(context);
-        }
-        */
-        // context.inputs.front()->read_value(context);
-        // static_cast<OwnJitSegmentReader*>(context.inputs.front().get())->read_value(context);
-        /*
+      if (dynamic_cast<OwnJitSegmentReader*>(context.inputs.front().get())) {
+        for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
+          if (! (dynamic_cast<OwnJitSegmentReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < val)) {
+            continue;
+          }
 
-        const auto row_tid = context.mvcc_data->tids[context.chunk_offset].load();
-        const auto begin_cid = context.mvcc_data->begin_cids[context.chunk_offset];
-        const auto end_cid = context.mvcc_data->end_cids[context.chunk_offset];
-        const auto our_tid = context.transaction_id;
-        const auto snapshot_commit_id = context.snapshot_commit_id;
-        bool is_visible = Validate::is_row_visible(our_tid, snapshot_commit_id, row_tid, begin_cid, end_cid);
-        if (!is_visible) {
-          continue;
+          context.output_pos_list->emplace_back(context.chunk_id, context.chunk_offset);
         }
-        */
-        //context.tuple.set<int>(tmp_id, context.tuple.get<int>(a_id) < context.tuple.get<int>(l_id));
-        //if (!context.tuple.get<int>(tmp_id)) {
-        int32_t value = 50000;  // context.tuple.get<int>(l_id)
-        if (! (static_cast<OwnJitSegmentReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < value)) {
-          continue;
-        }
+      } else {
+        for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
+          int32_t value = context.tuple.get<int>(l_id);
+          if (! (dynamic_cast<OwnDictionaryReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < value)) {
+            continue;
+          }
 
-        context.output_pos_list->emplace_back(context.chunk_id, context.chunk_offset);
+          context.output_pos_list->emplace_back(context.chunk_id, context.chunk_offset);
+        }
       }
 
       write.after_chunk(table, *out_table, context);
