@@ -340,13 +340,7 @@ int main(int argc, char* argv[]) {
   opossum::JitEvaluationHelper::get().queries() = config["queries"];
   opossum::JitEvaluationHelper::get().globals() = config["globals"];
 
-  const auto additional_scale_factor = 1.0;  // argc > 1 ? std::stod(argv[1]) : 1.0;
-  const double scale_factor = config["globals"]["scale_factor"].get<double>() * additional_scale_factor;
-  config["globals"]["scale_factor"] = scale_factor;
-
-  double current_scale_factor = scale_factor;
-
-  generte_tables(config, current_scale_factor);
+  double current_scale_factor = -1;
 
   std::cerr << "Initializing JIT repository" << std::endl;
   opossum::JitRepository::get();
@@ -364,12 +358,6 @@ int main(int argc, char* argv[]) {
     if (!experiment.count("mvcc")) experiment["mvcc"] = false;
     if (!experiment.count("optimize")) experiment["optimize"] = true;
     if (!experiment.count("hand_written")) experiment["hand_written"] = false;
-    if (!experiment.count("scale_factor")) experiment["scale_factor"] = scale_factor;
-    const auto experiment_scale_factor = experiment["scale_factor"].get<double>();
-    if (current_scale_factor != experiment_scale_factor) {
-      current_scale_factor = experiment_scale_factor;
-      generte_tables(config, current_scale_factor);
-    }
     if (!experiment.count("use_limit_in_subquery")) {
       experiment["use_limit_in_subquery"] = experiment.at("engine") == "jit";
     }
@@ -417,79 +405,99 @@ int main(int argc, char* argv[]) {
         }
       }
     }
-    const size_t query_pairs_count = query_pairs.size();
-    size_t current_query_pairs = 0;
-    for (const auto& pair : query_pairs) {
-      ++current_query_pairs;
-      const auto& [query_id, query_string] = pair;
-      nlohmann::json output{
-              {"globals", config["globals"]}, {"experiment", experiment}, {"results", nlohmann::json::array()}};
-      uint32_t current_repetition = 0;
-      if (experiment["task"] == "run") {
-        // one warmup run
-        size_t warm_up = 1;
-        if (experiment.count("warmup")) {
-          warm_up = experiment["warmup"].get<size_t>();
-        }
-        for (uint32_t i = 0; i < warm_up; ++i) {
-          reset_all();
-          run(query_string);
-        }
+
+    std::vector<double> scale_factors;
+    if (experiment.count("scale_factors")) {
+      scale_factors = experiment["scale_factors"].get<std::vector<double>>();
+    } else if (experiment.count("scale_factor")) {
+      scale_factors.push_back(experiment["scale_factor"].get<double>());
+    } else if (config["globals"].count("scale_factors")) {
+      scale_factors = config["globals"]["scale_factors"].get<std::vector<double>>();
+    } else {
+      scale_factors.push_back(config["globals"]["scale_factor"].get<double>());
+    }
+
+    for (const double experiment_scale_factor : scale_factors) {
+      if (current_scale_factor != experiment_scale_factor) {
+        current_scale_factor = experiment_scale_factor;
+        generte_tables(config, current_scale_factor);
       }
-      for (uint32_t i = 0; i < num_repetitions; ++i) {
-        reset_all();
-        current_repetition++;
-        std::cerr << "Running experiment " << (current_experiment + 1) << "/" << num_experiments
-        << " parameter combination " << (current_query_pairs) << "/" << query_pairs_count
-        << " repetition " << current_repetition << "/" << num_repetitions << std::endl;
-        if (experiment["task"] == "lqp") {
-          lqp(query_string);
-          break;
-        } else if (experiment["task"] == "pqp") {
-          pqp(query_string);
-          break;
-        } else if (experiment["task"] == "run") {
-          run(query_string);
-          if constexpr (!PAPI_SUPPORT) {
-            auto& result = opossum::JitEvaluationHelper::get().result();
-            nlohmann::json operators = nlohmann::json::array();
-            for (const auto pair : opossum::Global::get().times) {
-              if (pair.second.execution_time.count() > 0) {
-                operators.push_back({{"name", pair.first}, {"prepare", false}, {"walltime", pair.second.execution_time.count()}});
-              };
-              if (pair.second.__execution_time.count() > 0) {
-                operators.push_back({{"name", "__" + pair.first}, {"prepare", false}, {"walltime", pair.second.__execution_time.count()}});
-              };
-              if (pair.second.preparation_time.count() > 0) {
-                operators.push_back({{"name", pair.first}, {"prepare", true}, {"walltime", pair.second.preparation_time.count()}});
-              };
-              if (pair.second.__preparation_time.count() > 0) {
-                operators.push_back({{"name", "__" + pair.first}, {"prepare", true}, {"walltime", pair.second.__preparation_time.count()}});
-              };
-            }
-            result["operators"] = operators;
+
+      const size_t query_pairs_count = query_pairs.size();
+      size_t current_query_pairs = 0;
+      for (const auto& pair : query_pairs) {
+        ++current_query_pairs;
+        const auto& [query_id, query_string] = pair;
+        nlohmann::json output{
+                {"globals", config["globals"]}, {"experiment", experiment}, {"results", nlohmann::json::array()}};
+        uint32_t current_repetition = 0;
+        if (experiment["task"] == "run") {
+          // one warmup run
+          size_t warm_up = 1;
+          if (experiment.count("warmup")) {
+            warm_up = experiment["warmup"].get<size_t>();
           }
-          output["results"].push_back(opossum::JitEvaluationHelper::get().result());
-        } else {
-          throw std::logic_error("unknown task");
+          for (uint32_t i = 0; i < warm_up; ++i) {
+            reset_all();
+            run(query_string);
+          }
         }
-      }
-      if (experiment["task"] != "run") break;
-      output["par_query_id"] = query_id;
-      output["query_string"] = query_string;
-      file_output["results"].push_back(output);
-      const auto& original_query_id = experiment["query_id"].get<std::string>();
-      if (!file_output["queries"].count(original_query_id)) {
-        file_output["queries"][original_query_id] = nlohmann::json{};
-        if (config["queries"][original_query_id].count("query")) {
-          file_output["queries"][original_query_id]["query"] = config["queries"][original_query_id]["query"];
-        } else {
-          file_output["queries"][original_query_id]["queries"] = config["queries"][original_query_id]["queries"];
+        for (uint32_t i = 0; i < num_repetitions; ++i) {
+          reset_all();
+          current_repetition++;
+          std::cerr << "Running experiment " << (current_experiment + 1) << "/" << num_experiments
+          << " parameter combination " << (current_query_pairs) << "/" << query_pairs_count
+          << " repetition " << current_repetition << "/" << num_repetitions << std::endl;
+          if (experiment["task"] == "lqp") {
+            lqp(query_string);
+            break;
+          } else if (experiment["task"] == "pqp") {
+            pqp(query_string);
+            break;
+          } else if (experiment["task"] == "run") {
+            run(query_string);
+            if constexpr (!PAPI_SUPPORT) {
+              auto& result = opossum::JitEvaluationHelper::get().result();
+              nlohmann::json operators = nlohmann::json::array();
+              for (const auto pair : opossum::Global::get().times) {
+                if (pair.second.execution_time.count() > 0) {
+                  operators.push_back({{"name", pair.first}, {"prepare", false}, {"walltime", pair.second.execution_time.count()}});
+                };
+                if (pair.second.__execution_time.count() > 0) {
+                  operators.push_back({{"name", "__" + pair.first}, {"prepare", false}, {"walltime", pair.second.__execution_time.count()}});
+                };
+                if (pair.second.preparation_time.count() > 0) {
+                  operators.push_back({{"name", pair.first}, {"prepare", true}, {"walltime", pair.second.preparation_time.count()}});
+                };
+                if (pair.second.__preparation_time.count() > 0) {
+                  operators.push_back({{"name", "__" + pair.first}, {"prepare", true}, {"walltime", pair.second.__preparation_time.count()}});
+                };
+              }
+              result["operators"] = operators;
+            }
+            output["results"].push_back(opossum::JitEvaluationHelper::get().result());
+          } else {
+            throw std::logic_error("unknown task");
+          }
         }
-        if (config["queries"][original_query_id].count("parameters")) {
-          file_output["queries"][original_query_id]["parameters"] = config["queries"][original_query_id]["parameters"];
-        } else {
-          file_output["queries"][original_query_id]["parameters"] = nlohmann::json::array();
+        if (experiment["task"] != "run") break;
+        output["par_query_id"] = query_id;
+        output["query_string"] = query_string;
+        output["scale_factor"] = experiment_scale_factor;
+        file_output["results"].push_back(output);
+        const auto& original_query_id = experiment["query_id"].get<std::string>();
+        if (!file_output["queries"].count(original_query_id)) {
+          file_output["queries"][original_query_id] = nlohmann::json{};
+          if (config["queries"][original_query_id].count("query")) {
+            file_output["queries"][original_query_id]["query"] = config["queries"][original_query_id]["query"];
+          } else {
+            file_output["queries"][original_query_id]["queries"] = config["queries"][original_query_id]["queries"];
+          }
+          if (config["queries"][original_query_id].count("parameters")) {
+            file_output["queries"][original_query_id]["parameters"] = config["queries"][original_query_id]["parameters"];
+          } else {
+            file_output["queries"][original_query_id]["parameters"] = nlohmann::json::array();
+          }
         }
       }
     }
