@@ -31,8 +31,13 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
   std::chrono::nanoseconds scan{0};
 
   using OwnJitSegmentReader = JitSegmentReader<ValueSegmentIterable<int32_t>::NonNullIterator, int32_t, false>;
-  using DictIterator = DictionarySegmentIterable<int32_t, pmr_vector<int>>::Iterator<std::vector<uint32_t>::const_iterator>;
-  using OwnDictionaryReader = JitSegmentReader<DictIterator, JitValueID, false>;
+  // using DictIterator = DictionarySegmentIterable<int32_t, pmr_vector<int>>::Iterator<std::vector<uint32_t>::const_iterator>;
+  // using OwnDictionaryReader = JitSegmentReader<DictIterator, JitValueID, false>;
+  using OwnDictionaryReader = JitSegmentReader<AttributeVectorIterable::Iterator<std::vector<uint32_t>::const_iterator>, JitValueID, false>;
+
+  const auto col_a = table->column_id_by_name("A");
+  const auto segment = table->get_chunk(ChunkID(0))->get_segment(col_a);
+  const bool dict_segment = static_cast<bool>(std::dynamic_pointer_cast<const BaseEncodedSegment>(segment));
 
   {
     JitRuntimeContext context;
@@ -41,14 +46,24 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
       context.snapshot_commit_id = transaction_context()->snapshot_commit_id();
     }
     auto read_tuples = JitReadTuples(true);
-    const auto col_a = table->column_id_by_name("A");
-    read_tuples.add_input_column(DataType::Int, false, col_a, false);
+    const auto input_col_tuple = read_tuples.add_input_column(DataType::Int, false, col_a, dict_segment);
     // const auto col_x = right_table->column_id_by_name("X100000");
     // constexpr auto a_id = 0;
     constexpr int32_t val = 50000;
-    read_tuples.add_literal_value(AllTypeVariant(val));
+    const auto variant = AllTypeVariant(val);
+    const auto input_literal_tuple = read_tuples.add_literal_value(variant, dict_segment);
     constexpr auto l_id = 1;
-    read_tuples.add_temporary_value();
+    const auto tmp = read_tuples.add_temporary_value();
+
+    if (dict_segment) {
+      const auto jit_expression =
+              std::make_shared<JitExpression>(std::make_shared<JitExpression>(input_col_tuple), JitExpressionType::LessThan,
+                                              std::make_shared<JitExpression>(input_literal_tuple, variant, dict_segment), tmp);
+
+      read_tuples.add_value_id_predicate(*jit_expression);
+
+    }
+
     // constexpr auto tmp_id = 2;
     // const auto tpl =
 
@@ -65,15 +80,16 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
 
     Timer timer;
 
-    const auto segment = table->get_chunk(ChunkID(0))->get_segment(col_a);
-    const auto dict_segment = std::dynamic_pointer_cast<const BaseEncodedSegment>(segment);
     if (dict_segment) {
       for (opossum::ChunkID chunk_id{0}; chunk_id < table->chunk_count(); ++chunk_id) {
         read_tuples.before_chunk(*table, chunk_id, std::vector<AllTypeVariant>(), context);
 
-        const int32_t value = context.tuple.get<int>(l_id);
         for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
-          if (! (static_cast<OwnDictionaryReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < value)) {
+          // static_cast dynamic_cast
+          // const auto casted_ptr = context.inputs.front().get();
+          const auto casted_ptr = static_cast<OwnDictionaryReader*>(context.inputs.front().get());
+          const int32_t value = context.tuple.get<int>(l_id);
+          if (! (casted_ptr->read_and_get_value(context, int32_t()).value < value)) {
             continue;
           }
 
@@ -87,6 +103,7 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
         read_tuples.before_chunk(*table, chunk_id, std::vector<AllTypeVariant>(), context);
 
         for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
+          // static_cast dynamic_cast
           if (! (static_cast<OwnJitSegmentReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < val)) {
             continue;
           }
