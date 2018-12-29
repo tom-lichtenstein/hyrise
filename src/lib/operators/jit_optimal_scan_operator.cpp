@@ -36,8 +36,11 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
   using OwnDictionaryReader = JitSegmentReader<AttributeVectorIterable::Iterator<std::vector<uint32_t>::const_iterator>, JitValueID, false>;
 
   const auto col_a = table->column_id_by_name("A");
-  const auto segment = table->get_chunk(ChunkID(0))->get_segment(col_a);
-  const bool dict_segment = static_cast<bool>(std::dynamic_pointer_cast<const BaseEncodedSegment>(segment));
+  bool dict_segment = false;
+  if (!table->chunks().empty()) {
+    const auto segment = table->get_chunk(ChunkID(0))->get_segment(col_a);
+    dict_segment = static_cast<bool>(std::dynamic_pointer_cast<const BaseEncodedSegment>(segment));
+  }
 
   {
     JitRuntimeContext context;

@@ -417,7 +417,10 @@ int main(int argc, char* argv[]) {
       scale_factors.push_back(config["globals"]["scale_factor"].get<double>());
     }
 
+    const size_t scale_factors_count = scale_factors.size();
+    size_t scale_factor_counter = 0;
     for (const double experiment_scale_factor : scale_factors) {
+      ++scale_factor_counter;
       if (current_scale_factor != experiment_scale_factor) {
         current_scale_factor = experiment_scale_factor;
         generte_tables(config, current_scale_factor);
@@ -446,7 +449,8 @@ int main(int argc, char* argv[]) {
           reset_all();
           current_repetition++;
           std::cerr << "Running experiment " << (current_experiment + 1) << "/" << num_experiments
-          << " parameter combination " << (current_query_pairs) << "/" << query_pairs_count
+          << " scale factor " << scale_factor_counter << "/" << scale_factors_count
+          << " parameter combination " << current_query_pairs << "/" << query_pairs_count
           << " repetition " << current_repetition << "/" << num_repetitions << std::endl;
           if (experiment["task"] == "lqp") {
             lqp(query_string);
