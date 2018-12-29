@@ -71,8 +71,8 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
       for (opossum::ChunkID chunk_id{0}; chunk_id < table->chunk_count(); ++chunk_id) {
         read_tuples.before_chunk(*table, chunk_id, std::vector<AllTypeVariant>(), context);
 
+        const int32_t value = context.tuple.get<int>(l_id);
         for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
-          int32_t value = context.tuple.get<int>(l_id);
           if (! (static_cast<OwnDictionaryReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < value)) {
             continue;
           }
