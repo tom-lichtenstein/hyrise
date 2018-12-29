@@ -65,29 +65,37 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
 
     Timer timer;
 
-    for (opossum::ChunkID chunk_id{0}; chunk_id < table->chunk_count(); ++chunk_id) {
-      read_tuples.before_chunk(*table, chunk_id, std::vector<AllTypeVariant>(), context);
+    const auto segment = table->get_chunk(ChunkID(0))->get_segment(col_a);
+    const auto dict_segment = std::dynamic_pointer_cast<const BaseEncodedSegment>(segment);
+    if (dict_segment) {
+      for (opossum::ChunkID chunk_id{0}; chunk_id < table->chunk_count(); ++chunk_id) {
+        read_tuples.before_chunk(*table, chunk_id, std::vector<AllTypeVariant>(), context);
 
-      if (dynamic_cast<OwnJitSegmentReader*>(context.inputs.front().get())) {
-        for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
-          if (! (dynamic_cast<OwnJitSegmentReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < val)) {
-            continue;
-          }
-
-          context.output_pos_list->emplace_back(context.chunk_id, context.chunk_offset);
-        }
-      } else {
         for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
           int32_t value = context.tuple.get<int>(l_id);
-          if (! (dynamic_cast<OwnDictionaryReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < value)) {
+          if (! (static_cast<OwnDictionaryReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < value)) {
             continue;
           }
 
           context.output_pos_list->emplace_back(context.chunk_id, context.chunk_offset);
         }
-      }
 
-      write.after_chunk(table, *out_table, context);
+        write.after_chunk(table, *out_table, context);
+      }
+    } else {
+      for (opossum::ChunkID chunk_id{0}; chunk_id < table->chunk_count(); ++chunk_id) {
+        read_tuples.before_chunk(*table, chunk_id, std::vector<AllTypeVariant>(), context);
+
+        for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
+          if (! (static_cast<OwnJitSegmentReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < val)) {
+            continue;
+          }
+
+          context.output_pos_list->emplace_back(context.chunk_id, context.chunk_offset);
+        }
+
+        write.after_chunk(table, *out_table, context);
+      }
     }
 
     scan = timer.lap();
