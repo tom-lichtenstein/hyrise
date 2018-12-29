@@ -342,6 +342,7 @@ bool can_translate_predicate_to_predicate_value_id_expression(const AbstractExpr
 
         // Check if column is dictionary compressed
         const auto table = StorageManager::get().get_table(stored_table_node->table_name);
+        if (table->chunks().empty()) return false;
         const auto segment = table->get_chunk(ChunkID(0))->get_segment(column_reference.original_column_id());
         const auto dict_segment = std::dynamic_pointer_cast<const BaseEncodedSegment>(segment);
         if (!dict_segment) return false;

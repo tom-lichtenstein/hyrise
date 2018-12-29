@@ -135,6 +135,10 @@ void JitOperatorWrapper::_choose_execute_func() {
   if (_specialized_function->execute_func) return;
 
   const auto in_table = input_left()->get_output();
+  if (in_table->chunks().empty()) {
+    _specialized_function->execute_func = &JitReadTuples::execute;
+    return;
+  }
 
   if (in_table->chunk_count() > 0 && _source()->input_wrappers().empty()) {
     JitRuntimeContext context;
