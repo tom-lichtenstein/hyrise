@@ -89,21 +89,10 @@ class JitAggregate : public AbstractJittableSink {
 
  private:
   void _consume(JitRuntimeContext& context) const final;
-  virtual bool _limit_reached(JitRuntimeContext& context) const;
 
   uint32_t _num_hashmap_columns{0};
   std::vector<JitAggregateColumn> _aggregate_columns;
   std::vector<JitGroupByColumn> _groupby_columns;
-};
-
-class JitLimitAggregate : public JitAggregate {
- public:
-  using JitAggregate::JitAggregate;
-
-  std::string description() const final;
-
- private:
-  bool _limit_reached(JitRuntimeContext& context) const final;
 };
 
 }  // namespace opossum

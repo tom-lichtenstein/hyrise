@@ -97,17 +97,15 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
 
   bool use_validate = false;
   bool validate_after_filter = false;
-  bool allow_aggregate = true;
   bool has_predicate = false;
 
   // Traverse query tree until a non-jittable nodes is found in each branch
   _visit(node, [&](auto& current_node) {
     const auto is_root_node = current_node == node;
-    if (_node_is_jittable(current_node, use_value_id, allow_aggregate, is_root_node)) {
+    if (_node_is_jittable(current_node, use_value_id, is_root_node)) {
       use_validate |= current_node->type == LQPNodeType::Validate;
       has_predicate |= current_node->type == LQPNodeType::Predicate;
       validate_after_filter |= use_validate && current_node->type == LQPNodeType::Predicate;
-      allow_aggregate &= current_node->type == LQPNodeType::Limit;
       if (requires_computation(current_node)) ++jittable_node_count;
       return true;
     } else {
@@ -150,7 +148,6 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
 
   // limit can only be the root node
   const bool use_limit = node->type == LQPNodeType::Limit;
-  const auto& last_node = use_limit ? node->left_input() : node;
 
   // The input_node is not being integrated into the operator chain, but instead serves as the input to the JitOperators
   const auto input_node = *input_nodes.begin();
@@ -187,7 +184,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
   if (filter_node != input_node) {
     const auto boolean_expression =
         lqp_subplan_to_boolean_expression(filter_node, [&](const std::shared_ptr<AbstractLQPNode>& lqp) {
-          return _node_is_jittable(lqp, use_value_id, false, false);
+          return _node_is_jittable(lqp, use_value_id, false);
         });
     if (!boolean_expression) return nullptr;
 
@@ -217,11 +214,11 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
     jit_operator->add_jit_operator(std::make_shared<JitValidate>(TableType::Data, true));
   }
 
-  if (last_node->type == LQPNodeType::Aggregate) {
+  if (node->type == LQPNodeType::Aggregate) {
     // Since aggregate nodes cause materialization, there is at most one JitAggregate operator in each operator chain
     // and it must be the last operator of the chain. The _node_is_jittable function takes care of this by rejecting
     // aggregate nodes that would be placed in the middle of an operator chain.
-    const auto aggregate_node = std::static_pointer_cast<AggregateNode>(last_node);
+    const auto aggregate_node = std::static_pointer_cast<AggregateNode>(node);
 
     auto aggregate = std::make_shared<JitAggregate>();
 
@@ -518,7 +515,7 @@ bool _expressions_are_jittable(const std::vector<std::shared_ptr<AbstractExpress
 }  // namespace
 
 bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPNode>& node, const bool use_value_id,
-                                              const bool allow_aggregate_node, const bool allow_limit_node) const {
+                                              const bool is_root_node) const {
   bool jit_predicate = true;
   if (JitEvaluationHelper::get().experiment().count("jit_predicate")) {
     jit_predicate = JitEvaluationHelper::get().experiment()["jit_predicate"];
@@ -535,7 +532,7 @@ bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPN
           // Right now, the JIT does not support CountDistinct
           return aggregate_expression->aggregate_function == AggregateFunction::CountDistinct;
         });
-    return allow_aggregate_node && !has_unsupported_aggregate;
+    return is_root_node && !has_unsupported_aggregate;
   }
 
   if (auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(node)) {
@@ -546,7 +543,7 @@ bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPN
     return true;
   }
 
-  if (Global::get().jit_limit && allow_limit_node && node->type == LQPNodeType::Limit) {
+  if (Global::get().jit_limit && is_root_node && node->type == LQPNodeType::Limit) {
     return true;
   }
 

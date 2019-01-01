@@ -292,10 +292,6 @@ void JitAggregate::_consume(JitRuntimeContext& context) const {
   // The it_grow_by_one function appends an element to the end of an output vector and returns the index of that newly
   // added value in the vector.
   if (!found_match) {
-    if (_limit_reached(context)) {
-      return;
-    }
-
     for (uint32_t i = 0; i < num_groupby_columns; ++i) {
       // Grow each groupby column vector and copy the value from the current tuple.
       row_index = jit_grow_by_one(_groupby_columns[i].hashmap_value, JitVariantVector::InitialValue::Zero, context);
@@ -371,11 +367,5 @@ void JitAggregate::_consume(JitRuntimeContext& context) const {
   _end(context);
 #endif
 }
-
-bool JitAggregate::_limit_reached(JitRuntimeContext& context) const { return false; }
-
-std::string JitLimitAggregate::description() const { return "[LimitAggregate] " + aggregate_description(); }
-
-bool JitLimitAggregate::_limit_reached(JitRuntimeContext& context) const { return context.limit_rows-- <= 0; }
 
 }  // namespace opossum
