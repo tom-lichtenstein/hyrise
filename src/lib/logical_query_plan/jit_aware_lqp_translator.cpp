@@ -37,6 +37,7 @@
 #include "statistics/table_statistics.hpp"
 #include "storage/storage_manager.hpp"
 #include "types.hpp"
+#include "expression/expression_utils.hpp"
 
 using namespace std::string_literals;  // NOLINT
 
@@ -77,6 +78,121 @@ bool requires_computation(const std::shared_ptr<AbstractLQPNode> &node) {
     return false;
   }
   return true;
+}
+
+bool can_translate_predicate_to_predicate_value_id_expression(const AbstractExpression& expression,
+                                                              const std::shared_ptr<AbstractLQPNode>& input_node) {
+  if (!Global::get().use_value_id) return false;
+  // input node must be a stored table node
+  if (input_node && input_node->type != LQPNodeType::StoredTable) return false;
+
+  const auto* predicate_expression = dynamic_cast<const AbstractPredicateExpression*>(&expression);
+  // value ids can only be used in compare expressions
+  switch (predicate_expression->predicate_condition) {
+    case PredicateCondition::In:
+    case PredicateCondition::NotIn:
+    case PredicateCondition::Like:
+    case PredicateCondition::NotLike:
+      return false;
+    default:
+      break;
+  }
+
+  // predicates with value ids only work on exactly one input column
+  bool found_input_column = false;
+
+  for (const auto& argument : expression.arguments) {
+    switch (argument->type) {
+      case ExpressionType::Value:
+      case ExpressionType::Parameter:
+        break;
+      case ExpressionType::LQPColumn: {
+        if (found_input_column) return false;
+
+        // Check if column references a stored table
+        const auto column = std::dynamic_pointer_cast<const LQPColumnExpression>(argument);
+        const auto column_reference = column->column_reference;
+
+        const auto stored_table_node =
+                std::dynamic_pointer_cast<const StoredTableNode>(column_reference.original_node());
+        if (!stored_table_node) return false;
+
+        // Check if column is dictionary compressed
+        const auto table = StorageManager::get().get_table(stored_table_node->table_name);
+        if (table->chunks().empty()) return false;
+        const auto segment = table->get_chunk(ChunkID(0))->get_segment(column_reference.original_column_id());
+        const auto dict_segment = std::dynamic_pointer_cast<const BaseEncodedSegment>(segment);
+        if (!dict_segment) return false;
+
+        found_input_column = true;
+        break;
+      }
+      default:
+        return false;
+    }
+  }
+  return found_input_column;
+}
+
+float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::shared_ptr<AbstractLQPNode>& input_node) {
+  if (const auto projection_node = std::dynamic_pointer_cast<ProjectionNode>(node)) {
+    float counter = 0;
+    for (const auto& expression : projection_node->expressions) {
+      if (expression->type != ExpressionType::LQPColumn) counter += 1;
+    }
+    return counter;
+  } else if (const auto aggregate_node = std::dynamic_pointer_cast<AggregateNode>(node)) {
+    //aggregate_node->get_statistics()
+    if (aggregate_node->group_by_expressions.empty()) return -1000;
+    return 2;  // aggregate_node->group_by_expressions.size();
+  } else if (const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(node)) {
+    float weight = 0;
+    visit_expression(predicate_node->predicate, [&](const auto& sub_expression) {
+      if (sub_expression->type == ExpressionType::LQPColumn || sub_expression->type == ExpressionType::Value ||
+      sub_expression->type == ExpressionType::Parameter || sub_expression->type == ExpressionType::Aggregate) {
+        return ExpressionVisitation::DoNotVisitArguments;
+      }
+
+      if (const auto predicate = std::dynamic_pointer_cast<BinaryPredicateExpression>(sub_expression)) {
+        const auto left = std::dynamic_pointer_cast<const LQPColumnExpression>(predicate->left_operand());
+        const auto right = std::dynamic_pointer_cast<const LQPColumnExpression>(predicate->right_operand());
+        if (left && right && left->data_type() == DataType::String) {
+          weight -= 1;
+        } else if (predicate->predicate_condition != PredicateCondition::Like
+                              && predicate->predicate_condition != PredicateCondition::NotLike) {
+          if ((left && left->data_type() == DataType::String) || (right && right->data_type() == DataType::String)) {
+            if (!can_translate_predicate_to_predicate_value_id_expression(*sub_expression, input_node)) {
+              weight -= 2;
+            }
+          }
+        }
+      }
+      if (const auto predicate = std::dynamic_pointer_cast<LogicalExpression>(sub_expression)) {
+        weight += predicate->logical_operator == LogicalOperator::Or ? 1 : -1;
+      }
+      weight += 1;
+      return ExpressionVisitation::VisitArguments;
+    });
+    if (weight == 0) return 0;
+    float selectivity = 0;
+    try {
+      if (const auto input_row_count = node->left_input()->get_statistics()->row_count()) {
+        selectivity = node->get_statistics()->row_count() / input_row_count;
+      }
+    } catch (std::logic_error) {
+      // Not all nodes support statistics yet
+      selectivity = 1;
+    }
+    if (selectivity < 0.001) return -1;
+    return selectivity < 0.01 ? 0 : weight;
+    std::cout << "selectivity: " << selectivity << std::endl;
+    node->print(std::cout);
+  } else if (node->type == LQPNodeType::Validate) {
+    return .5;
+  } else if (node->type == LQPNodeType::Limit) {
+    return 1;
+  }
+  return 1;
 }
 
 }  // namespace
@@ -136,6 +252,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
           case ExpressionType::LQPColumn:
           case ExpressionType::Value:
           case ExpressionType::Parameter:
+          case ExpressionType::Aggregate:
             continue;
           default:
             complex_expression = true;
@@ -151,6 +268,20 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
 
   // The input_node is not being integrated into the operator chain, but instead serves as the input to the JitOperators
   const auto input_node = *input_nodes.begin();
+
+  float weight = 0;
+  _visit(node, [&](auto& current_node) {
+    const bool is_jittable = _node_is_jittable(current_node, use_value_id, node == current_node);
+    if (is_jittable) {
+      weight += compute_weigth(current_node, input_node);
+    }
+    return is_jittable;
+  });
+  if (weight < 2) return nullptr;
+  if constexpr (false) {
+    std::cout << "Jit Translator: jittable_node_count " << jittable_node_count << " weight: " << weight << std::endl;
+  }
+
 
   const auto jit_operator = std::make_shared<JitOperatorWrapper>(translate_node(input_node));
   const auto row_count_expression =
@@ -296,64 +427,15 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
     }
   }
 
+  /*
+  if (weight < 2) {  // selectivity < 0.001
+    std::cout << "selectivity: " << selectivity << " weight: " << weight << std::endl;
+    std::cout << jit_operator->description(DescriptionMode::MultiLine) << std::endl;
+  }
+   */
+
   return jit_operator;
 }
-
-namespace {
-bool can_translate_predicate_to_predicate_value_id_expression(const AbstractExpression& expression,
-                                                              const std::shared_ptr<AbstractLQPNode>& input_node) {
-  if (!Global::get().use_value_id) return false;
-  // input node must be a stored table node
-  if (input_node && input_node->type != LQPNodeType::StoredTable) return false;
-
-  const auto* predicate_expression = dynamic_cast<const AbstractPredicateExpression*>(&expression);
-  // value ids can only be used in compare expressions
-  switch (predicate_expression->predicate_condition) {
-    case PredicateCondition::In:
-    case PredicateCondition::NotIn:
-    case PredicateCondition::Like:
-    case PredicateCondition::NotLike:
-      return false;
-    default:
-      break;
-  }
-
-  // predicates with value ids only work on exactly one input column
-  bool found_input_column = false;
-
-  for (const auto& argument : expression.arguments) {
-    switch (argument->type) {
-      case ExpressionType::Value:
-      case ExpressionType::Parameter:
-        break;
-      case ExpressionType::LQPColumn: {
-        if (found_input_column) return false;
-
-        // Check if column references a stored table
-        const auto column = std::dynamic_pointer_cast<const LQPColumnExpression>(argument);
-        const auto column_reference = column->column_reference;
-
-        const auto stored_table_node =
-            std::dynamic_pointer_cast<const StoredTableNode>(column_reference.original_node());
-        if (!stored_table_node) return false;
-
-        // Check if column is dictionary compressed
-        const auto table = StorageManager::get().get_table(stored_table_node->table_name);
-        if (table->chunks().empty()) return false;
-        const auto segment = table->get_chunk(ChunkID(0))->get_segment(column_reference.original_column_id());
-        const auto dict_segment = std::dynamic_pointer_cast<const BaseEncodedSegment>(segment);
-        if (!dict_segment) return false;
-
-        found_input_column = true;
-        break;
-      }
-      default:
-        return false;
-    }
-  }
-  return found_input_column;
-}
-}  // namespace
 
 std::shared_ptr<const JitExpression> JitAwareLQPTranslator::_try_translate_expression_to_jit_expression(
     const AbstractExpression& expression, JitReadTuples& jit_source, const std::shared_ptr<AbstractLQPNode>& input_node,
