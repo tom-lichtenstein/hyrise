@@ -40,7 +40,7 @@ JitExpression::JitExpression(const std::shared_ptr<const JitExpression>& left_ch
       _expression_type{expression_type},
       _result_value{JitTupleValue(_compute_result_type(), result_tuple_index)} {
 #if JIT_READER_WRAPPER
-  if (_expression_type == JitExpressionType::Like || _expression_type == JitExpressionType::Like) {
+  if (_expression_type == JitExpressionType::Like || _expression_type == JitExpressionType::NotLike) {
     JitRuntimeContext context;
     const auto like_pattern = right_child->compute_and_get<std::string>(context).value;
     _matcher = std::make_shared<LikeMatcher>(like_pattern);
