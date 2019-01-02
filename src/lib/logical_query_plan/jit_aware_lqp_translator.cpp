@@ -285,14 +285,16 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
   const auto input_node = *input_nodes.begin();
 
   float weight = 0;
-  _visit(node, [&](auto& current_node) {
-    const bool is_jittable = _node_is_jittable(current_node, use_value_id, node == current_node);
-    if (is_jittable) {
-      weight += compute_weigth(current_node, input_node);
-    }
-    return is_jittable;
-  });
-  if (weight < 2) return nullptr;
+  if (Global::get().use_weight) {
+    _visit(node, [&](auto& current_node) {
+      const bool is_jittable = _node_is_jittable(current_node, use_value_id, node == current_node);
+      if (is_jittable) {
+        weight += compute_weigth(current_node, input_node);
+      }
+      return is_jittable;
+    });
+    if (weight < 2) return nullptr;
+  }
   if constexpr (false) {
     std::cout << "Jit Translator: jittable_node_count " << jittable_node_count << " weight: " << weight << std::endl;
   }

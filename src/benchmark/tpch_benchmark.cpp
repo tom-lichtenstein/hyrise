@@ -64,6 +64,7 @@ int main(int argc, char* argv[]) {
   bool& jit_validate = opossum::Global::get().jit_validate;
   bool& disable_string_compare = opossum::Global::get().disable_string_compare;
   opossum::Global::get().use_times = true;
+  opossum::Global::get().use_weight = true;
 
   std::vector<opossum::QueryID> query_ids;
 

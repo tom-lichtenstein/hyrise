@@ -373,6 +373,7 @@ int main(int argc, char* argv[]) {
       if (!experiment.count("allow_single_predicate")) experiment["allow_single_predicate"] = false;
       if (!experiment.count("use_value_id")) experiment["use_value_id"] = true;
       if (!experiment.count("reference_output")) experiment["reference_output"] = true;
+      if (!experiment.count("use_weight")) experiment["use_weight"] = false;
       global.jit = true;
       global.lazy_load = experiment["lazy_load"];
       global.jit_validate = experiment["jit_validate"];
@@ -380,6 +381,7 @@ int main(int argc, char* argv[]) {
       global.allow_single_predicate = experiment["allow_single_predicate"];
       global.use_value_id = experiment["use_value_id"];
       global.reference_output = experiment["reference_output"];
+      global.use_weight = experiment["use_weight"];
       if (experiment.count("debug_print")) global.debug_print = experiment["debug_print"];
     } else {
       opossum::Fail("unknown query engine parameter");
