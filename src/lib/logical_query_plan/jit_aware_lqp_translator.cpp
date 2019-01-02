@@ -143,8 +143,18 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
     return counter;
   } else if (const auto aggregate_node = std::dynamic_pointer_cast<AggregateNode>(node)) {
     //aggregate_node->get_statistics()
-    if (aggregate_node->group_by_expressions.empty()) return -1000;
-    return 2;  // aggregate_node->group_by_expressions.size();
+    // if (aggregate_node->group_by_expressions.empty()) return -1000;
+    size_t computed_expressions = 0;
+    for (const auto& expression : aggregate_node->group_by_expressions) {
+      const auto input_node_column_id = input_node->find_column_id(*expression);
+      if (!input_node_column_id) ++computed_expressions;
+      // if (expression->data_type() != DataType::String) ++non_string_expressions;
+    }
+    for (const auto& expression : aggregate_node->aggregate_expressions) {
+      const auto input_node_column_id = input_node->find_column_id(*expression->arguments[0]);
+      if (!input_node_column_id) ++computed_expressions;
+    }
+    return std::min(computed_expressions, 2lu); //non_string_expressions ? 2 : 0;  // aggregate_node->group_by_expressions.size();
   } else if (const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(node)) {
     float weight = 0;
     visit_expression(predicate_node->predicate, [&](const auto& sub_expression) {
@@ -163,6 +173,8 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
           if ((left && left->data_type() == DataType::String) || (right && right->data_type() == DataType::String)) {
             if (!can_translate_predicate_to_predicate_value_id_expression(*sub_expression, input_node)) {
               weight -= 2;
+            } else {
+              weight -= 0.1;
             }
           }
         }
