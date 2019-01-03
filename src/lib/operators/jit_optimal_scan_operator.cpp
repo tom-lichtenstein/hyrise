@@ -106,7 +106,9 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
       for (opossum::ChunkID chunk_id{0}; chunk_id < table->chunk_count(); ++chunk_id) {
         read_tuples.before_chunk(*table, chunk_id, std::vector<AllTypeVariant>(), context);
 
-        for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
+        const auto chunk_size = context.chunk_size;
+        auto& chunk_offset = context.chunk_offset;
+        for (; chunk_offset < chunk_size; ++chunk_offset) {
           // static_cast dynamic_cast
           if (! (static_cast<OwnJitSegmentReader*>(context.inputs.front().get())->read_and_get_value(context, int32_t()).value < val)) {
             continue;
