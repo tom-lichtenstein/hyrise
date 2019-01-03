@@ -7,6 +7,7 @@
 
 #include <queue>
 #include <unordered_set>
+#include <expression/between_expression.hpp>
 
 #include "constant_mappings.hpp"
 #include "expression/abstract_predicate_expression.hpp"
@@ -39,7 +40,15 @@
 #include "types.hpp"
 #include "expression/expression_utils.hpp"
 
+#include "operators/get_table.hpp"
+#include "operators/table_scan.hpp"
+
+#include "sql/sql_query_cache.hpp"
+#include "expression/expression_functional.hpp"
+
 using namespace std::string_literals;  // NOLINT
+
+using namespace opossum::expression_functional;  // NOLINT
 
 namespace {
 
@@ -134,76 +143,138 @@ bool can_translate_predicate_to_predicate_value_id_expression(const AbstractExpr
   return found_input_column;
 }
 
-float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::shared_ptr<AbstractLQPNode>& input_node) {
+bool expression_is_complex(const std::shared_ptr<AbstractExpression> &expression) {
+  switch (expression->type) {
+    case ExpressionType::Value:
+    case ExpressionType::Parameter:
+    case ExpressionType::LQPColumn:
+    case ExpressionType::Aggregate:
+      return false;
+    default:
+      return true;
+  }
+}
+
+bool expressions_are_complex(const std::vector<std::shared_ptr<AbstractExpression>>& expressions) {
+  for (const auto& expression : expressions) {
+    if (expression_is_complex(expression)) return true;
+  }
+  return false;
+}
+
+float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::shared_ptr<AbstractLQPNode>& input_node, const bool root_node) {
   if (const auto projection_node = std::dynamic_pointer_cast<ProjectionNode>(node)) {
     float counter = 0;
     for (const auto& expression : projection_node->expressions) {
       if (expression->type != ExpressionType::LQPColumn) counter += 1;
     }
-    return counter;
+    return counter == 1 ? .5f : counter;
   } else if (const auto aggregate_node = std::dynamic_pointer_cast<AggregateNode>(node)) {
     //aggregate_node->get_statistics()
     // if (aggregate_node->group_by_expressions.empty()) return -1000;
-    size_t computed_expressions = 0;
+    float weight = aggregate_node->group_by_expressions.size() > 2 ? 1 : 0;
+    size_t string_expressions = 0;
     for (const auto& expression : aggregate_node->group_by_expressions) {
       const auto input_node_column_id = input_node->find_column_id(*expression);
-      if (!input_node_column_id) ++computed_expressions;
-      // if (expression->data_type() != DataType::String) ++non_string_expressions;
+      if (!input_node_column_id) {
+        weight += expressions_are_complex(expression->arguments) ? 1. : 0.9;
+      }
+      if (expression->data_type() == DataType::String) ++string_expressions;
     }
     for (const auto& expression : aggregate_node->aggregate_expressions) {
       const auto aggregate_expression = std::static_pointer_cast<AggregateExpression>(expression);
       if (const auto argument = aggregate_expression->argument()) {
         const auto input_node_column_id = input_node->find_column_id(*argument);
-        if (!input_node_column_id) ++computed_expressions;
+        if (argument->data_type() == DataType::String) ++string_expressions;
+        if (!input_node_column_id) {
+          weight += expressions_are_complex(expression->arguments) ? 1. : 0.9;
+        }
+
       }
     }
-    return std::min(computed_expressions, 2lu); //non_string_expressions ? 2 : 0;  // aggregate_node->group_by_expressions.size();
+    weight -= .1 * string_expressions;
+    return std::min(weight, 2.f); //non_string_expressions ? 2 : 0;  // aggregate_node->group_by_expressions.size();
   } else if (const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(node)) {
     float weight = 0;
+    size_t complexity = 0;
     visit_expression(predicate_node->predicate, [&](const auto& sub_expression) {
-      if (sub_expression->type == ExpressionType::LQPColumn || sub_expression->type == ExpressionType::Value ||
-      sub_expression->type == ExpressionType::Parameter || sub_expression->type == ExpressionType::Aggregate) {
+      if (!expression_is_complex(sub_expression)) {
         return ExpressionVisitation::DoNotVisitArguments;
       }
-
-      if (const auto predicate = std::dynamic_pointer_cast<BinaryPredicateExpression>(sub_expression)) {
-        const auto left = std::dynamic_pointer_cast<const LQPColumnExpression>(predicate->left_operand());
-        const auto right = std::dynamic_pointer_cast<const LQPColumnExpression>(predicate->right_operand());
-        if (left && right && left->data_type() == DataType::String) {
-          weight -= 1;
-        } else if (predicate->predicate_condition != PredicateCondition::Like
-                              && predicate->predicate_condition != PredicateCondition::NotLike) {
-          if ((left && left->data_type() == DataType::String) || (right && right->data_type() == DataType::String)) {
-            if (!can_translate_predicate_to_predicate_value_id_expression(*sub_expression, input_node)) {
-              weight -= 2;
-            } else {
-              weight -= 0.1;
+      ++complexity;
+      if (sub_expression->arguments[0]->data_type() == DataType::String) {
+        if (!can_translate_predicate_to_predicate_value_id_expression(*sub_expression, input_node)) {
+          weight -= 2;
+        } else {
+          try {
+            if (input_node->get_statistics()->row_count() > 55000000) {
+              ++complexity;
+              weight += 1;
             }
-          }
+          } catch(std::logic_error) {}
         }
-      }
-      if (const auto predicate = std::dynamic_pointer_cast<LogicalExpression>(sub_expression)) {
-        weight += predicate->logical_operator == LogicalOperator::Or ? 1 : -1;
       }
       weight += 1;
       return ExpressionVisitation::VisitArguments;
     });
-    if (weight == 0) return 0;
+    if (weight < 0 || complexity > 1) return weight;
     float selectivity = 0;
     try {
       if (const auto input_row_count = node->left_input()->get_statistics()->row_count()) {
         selectivity = node->get_statistics()->row_count() / input_row_count;
       }
-    } catch (std::logic_error) {
+
+      if (predicate_node->predicate->arguments[0]->data_type() == DataType::String
+              && input_node->type == LQPNodeType::StoredTable) {
+        auto& cache = SQLQueryCache<float, std::shared_ptr<PredicateNode>>::get();
+        if (const auto entry = cache.try_get(predicate_node)) {
+          selectivity = *entry;
+        } else {
+          const auto stored_table_node = std::dynamic_pointer_cast<StoredTableNode>(input_node);
+          auto get_table = std::make_shared<GetTable>(stored_table_node->table_name);
+          get_table->execute();
+          const auto& operator_predicates = OperatorScanPredicate::from_expression(*predicate_node->predicate, *input_node);
+          const auto predicate_vars = operator_predicates->front();
+          std::shared_ptr<AbstractPredicateExpression> new_predicate;
+
+          const auto& column_definition = get_table->get_output()->column_definitions().at(predicate_vars.column_id);
+          const std::shared_ptr<AbstractExpression> column_expression = expression_functional::pqp_column_(predicate_vars.column_id, column_definition.data_type, column_definition.nullable, column_definition.name);
+          if (predicate_vars.predicate_condition == PredicateCondition::Between) {
+            if (is_variant(predicate_vars.value) && is_variant(*predicate_vars.value2)) {
+              new_predicate = std::make_shared<BetweenExpression>(column_expression, value_(boost::get<AllTypeVariant>(predicate_vars.value)), value_(boost::get<AllTypeVariant>(*predicate_vars.value2)));
+            }
+          } else {
+            if (is_variant(predicate_vars.value)) {
+              new_predicate = std::make_shared<BinaryPredicateExpression>(predicate_vars.predicate_condition, column_expression, expression_functional::value_(boost::get<AllTypeVariant>(predicate_vars.value)));
+            }
+          }
+          if (new_predicate) {
+            auto scan = std::make_shared<TableScan>(get_table, new_predicate);
+            scan->execute();
+            if (const auto input_size = get_table->get_output()->row_count()) {
+              const auto output_size = scan->get_output()->row_count();
+              selectivity = 1.f * output_size / input_size;
+            }
+          }
+          if (cache.size() != 1000) {
+            cache.resize(1000);
+          }
+          cache.set(predicate_node, selectivity);
+        }
+      }
+
+
+    } catch (std::logic_error err) {
       // Not all nodes support statistics yet
       selectivity = 1;
     }
+    // std::cout << "selectivity: " << selectivity << std::endl;
+    // node->print(std::cout);
     if (selectivity < 0.001) return -1;
-    return selectivity < 0.01 ? 0 : weight;
-    std::cout << "selectivity: " << selectivity << std::endl;
-    node->print(std::cout);
+    if (selectivity < 0.05) return 0;
+    return selectivity < 0.3 ? selectivity * weight : weight;
   } else if (node->type == LQPNodeType::Validate) {
-    return .5;
+    return 1;
   } else if (node->type == LQPNodeType::Limit) {
     return 1;
   }
@@ -289,7 +360,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
     _visit(node, [&](auto& current_node) {
       const bool is_jittable = _node_is_jittable(current_node, use_value_id, node == current_node);
       if (is_jittable) {
-        weight += compute_weigth(current_node, input_node);
+        weight += compute_weigth(current_node, input_node, node == current_node);
       }
       return is_jittable;
     });
@@ -444,11 +515,19 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
     }
   }
 
+
   /*
   if (weight < 2) {  // selectivity < 0.001
+    // * /
     std::cout << "selectivity: " << selectivity << " weight: " << weight << std::endl;
-    std::cout << jit_operator->description(DescriptionMode::MultiLine) << std::endl;
+    std::cout << jit_operator->description(DescriptionMode::MultiLine) << std::endl << std::flush;
+    // / *
+  } else {
+    std::cout << "------------------ selectivity: " << selectivity << " weight: " << weight << std::endl;
+    std::cout << jit_operator->description(DescriptionMode::MultiLine) << std::endl << std::flush;
+    std::cout << "---------------------------------------------------------------------------------" << std::endl;
   }
+  usleep(10);
    */
 
   return jit_operator;
