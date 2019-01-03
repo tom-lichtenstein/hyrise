@@ -58,17 +58,19 @@ void JitReadTuples::set_values_from_input(const bool use_value_id, const std::ve
     if (data_type == DataType::Null) {
       tuple_value.set_is_null(true, context);
     } else {
-      resolve_data_type(data_type, [&](auto type) {
-        using TupleDataType = typename decltype(type)::type;
-        tuple_value.set<TupleDataType>(boost::get<TupleDataType>(value), context);
-        if (tuple_value.is_nullable()) {
-          tuple_value.set_is_null(variant_is_null(value), context);
-        }
-        // Non-jit operators store bool values as int values
-        if constexpr (std::is_same_v<TupleDataType, Bool>) {
-          tuple_value.set<bool>(boost::get<TupleDataType>(value), context);
-        }
-      });
+      if (tuple_value.is_nullable()) {
+        tuple_value.set_is_null(variant_is_null(value), context);
+      }
+      if(!variant_is_null(value)) {
+        resolve_data_type(data_type_from_all_type_variant(value), [&](auto type) {
+          using TupleDataType = typename decltype(type)::type;
+          tuple_value.set<TupleDataType>(boost::get<TupleDataType>(value), context);
+          // Non-jit operators store bool values as int values
+          if constexpr (std::is_same_v<TupleDataType, Bool>) {
+            tuple_value.set<bool>(boost::get<TupleDataType>(value), context);
+          }
+        });
+      }
     }
   };
 
