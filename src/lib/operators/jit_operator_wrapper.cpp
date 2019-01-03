@@ -115,8 +115,6 @@ void JitOperatorWrapper::insert_loads(const bool lazy) {
             _source()->input_columns()[inverted_input_columns[pair.first]], input_wrappers[inverted_input_columns[pair.first]]));
         }
         column_id_used_by_one_operator.erase(pair.first);
-      } else {
-        Fail("Something is wrong");
       }
     }
     jit_operators.push_back(jit_operator);
