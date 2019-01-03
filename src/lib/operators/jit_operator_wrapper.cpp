@@ -135,6 +135,13 @@ void JitOperatorWrapper::_choose_execute_func() {
   std::lock_guard<std::mutex> guard(_specialized_function->specialize_mutex);
   if (_specialized_function->execute_func) return;
 
+  auto two_specialization_passes = static_cast<bool>(std::dynamic_pointer_cast<JitAggregate>(_sink()));
+  bool specialize = !Global::get().interpret;
+  if (JitEvaluationHelper::get().experiment().count("jit_use_jit")) {
+    specialize = JitEvaluationHelper::get().experiment().at("jit_use_jit");
+  }
+  // specialize = false;
+
   const auto in_table = input_left()->get_output();
   if (in_table->chunks().empty()) {
     _specialized_function->execute_func = &JitReadTuples::execute;
@@ -142,8 +149,13 @@ void JitOperatorWrapper::_choose_execute_func() {
   }
 
   if (in_table->chunk_count() > 0 && _source()->input_wrappers().empty()) {
-    JitRuntimeContext context;
-    _source()->add_input_segment_iterators(context, *in_table, *(in_table->get_chunk(ChunkID(0))), true, true);
+    if (specialize) {
+      JitRuntimeContext context;
+      _source()->add_input_segment_iterators(context, *in_table, *(in_table->get_chunk(ChunkID(0))), true, true);
+    } else {
+      _source()->create_default_input_wrappers();
+    }
+
   }
   for (auto& jit_operator : _specialized_function->jit_operators) {
     if (auto jit_validate = std::dynamic_pointer_cast<JitValidate>(jit_operator)) {
@@ -168,12 +180,7 @@ void JitOperatorWrapper::_choose_execute_func() {
 
   // We want to perform two specialization passes if the operator chain contains a JitAggregate operator, since the
   // JitAggregate operator contains multiple loops that need unrolling.
-  auto two_specialization_passes = static_cast<bool>(std::dynamic_pointer_cast<JitAggregate>(_sink()));
-  bool specialize = !Global::get().interpret;
-  if (JitEvaluationHelper::get().experiment().count("jit_use_jit")) {
-    specialize = JitEvaluationHelper::get().experiment().at("jit_use_jit");
-  }
-  // specialize = false;
+
   if (specialize) {
 #if IS_DEBUG
     std::cerr << "Specializing function" << std::endl;
