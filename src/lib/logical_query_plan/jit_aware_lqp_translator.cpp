@@ -259,8 +259,8 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
       // Not all nodes support statistics yet
       selectivity = 1;
     }
-    std::cout << "selectivity: " << selectivity << std::endl;
-    node->print(std::cout);
+    // std::cout << "selectivity: " << selectivity << std::endl;
+    // node->print(std::cout);
     if (first_node) {
       if (selectivity < .3) return -2;
       if (selectivity < .4) return 0;

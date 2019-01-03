@@ -299,7 +299,9 @@ void JitReadTuples::execute(JitRuntimeContext& context) const {
 #if JIT_MEASURE
   context.begin_operator = std::chrono::high_resolution_clock::now();
 #endif
-  for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
+  const auto chunk_size = context.chunk_size;
+  auto& chunk_offset = context.chunk_offset;
+  for (; chunk_offset < chunk_size; ++chunk_offset) {
     _emit(context);
     // We advance all segment iterators, after processing the tuple with the next operators.
 #if JIT_OLD_LAZY_LOAD

@@ -28,7 +28,6 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
 
   const auto table = StorageManager::get().get_table("TABLE_SCAN");
 
-  std::chrono::nanoseconds scan{0};
 
   using OwnJitSegmentReader = JitSegmentReader<ValueSegmentIterable<int32_t>::NonNullIterator, int32_t, false>;
   // using DictIterator = DictionarySegmentIterable<int32_t, pmr_vector<int>>::Iterator<std::vector<uint32_t>::const_iterator>;
@@ -81,13 +80,15 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
     auto out_table = write.create_output_table(table->max_chunk_size());
     write.before_query(*table, *out_table, context);
 
-    Timer timer;
+    // Timer timer;
 
     if (dict_segment) {
       for (opossum::ChunkID chunk_id{0}; chunk_id < table->chunk_count(); ++chunk_id) {
         read_tuples.before_chunk(*table, chunk_id, std::vector<AllTypeVariant>(), context);
 
-        for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
+        const auto chunk_size = context.chunk_size;
+        auto& chunk_offset = context.chunk_offset;
+        for (; chunk_offset < chunk_size; ++chunk_offset) {
           // static_cast dynamic_cast
           // const auto casted_ptr = context.inputs.front().get();
           const auto casted_ptr = static_cast<OwnDictionaryReader*>(context.inputs.front().get());
@@ -118,10 +119,11 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
       }
     }
 
-    scan = timer.lap();
+    // std::chrono::nanoseconds scan = timer.lap();
 
     write.after_query(*out_table, context);
 
+    /*
     auto& operators = JitEvaluationHelper::get().result()["operators"];
     auto add_time = [&operators](const std::string& name, const auto& time) {
       const auto micro_s = std::chrono::duration_cast<std::chrono::microseconds>(time).count();
@@ -132,6 +134,7 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
     };
 
     add_time("_table_scan", scan);
+     */
 
     return out_table;
   }

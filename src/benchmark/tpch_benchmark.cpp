@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
     ("jit", "Enable jit", cxxopts::value<bool>()->default_value("false"))
     ("lazy_load", "Enable lazy load in jit", cxxopts::value<bool>()->default_value("true"))
     ("interpret", "Interpret jit codde", cxxopts::value<bool>()->default_value("false"))
+    ("use_weight", "use_weight", cxxopts::value<bool>()->default_value("true"))
     ("jit_validate", "Use jit validate", cxxopts::value<bool>()->default_value("true"))
     ("disable_string_compare", "disable string compare in jit", cxxopts::value<bool>()->default_value("false"))
     ("q,queries", "Specify queries to run (comma-separated query ids, e.g. \"--queries 1,3,19\"), default is all", cxxopts::value<std::string>()); // NOLINT
@@ -64,7 +65,7 @@ int main(int argc, char* argv[]) {
   bool& jit_validate = opossum::Global::get().jit_validate;
   bool& disable_string_compare = opossum::Global::get().disable_string_compare;
   opossum::Global::get().use_times = true;
-  opossum::Global::get().use_weight = true;
+  bool& use_weight = opossum::Global::get().use_weight;
 
   std::vector<opossum::QueryID> query_ids;
 
@@ -78,6 +79,7 @@ int main(int argc, char* argv[]) {
     interpret = json_config.value("interpret", false);
     jit_validate = json_config.value("jit_validate", true);
     disable_string_compare = json_config.value("disable_string_compare", false);
+    use_weight = json_config.value("use_weight", true);
 
     comma_separated_queries = json_config.value("queries", std::string(""));
 
@@ -103,6 +105,7 @@ int main(int argc, char* argv[]) {
     interpret = cli_parse_result["interpret"].as<bool>();
     jit_validate = cli_parse_result["jit_validate"].as<bool>();
     disable_string_compare = cli_parse_result["disable_string_compare"].as<bool>();
+    use_weight = cli_parse_result["use_weight"].as<bool>();
 
     scale_factor = cli_parse_result["scale"].as<float>();
 
