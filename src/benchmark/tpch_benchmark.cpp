@@ -49,9 +49,12 @@ int main(int argc, char* argv[]) {
     ("s,scale", "Database scale factor (1.0 ~ 1GB)", cxxopts::value<float>()->default_value("0.1"))
     ("jit", "Enable jit", cxxopts::value<bool>()->default_value("false"))
     ("lazy_load", "Enable lazy load in jit", cxxopts::value<bool>()->default_value("true"))
+    ("reference_output", "reference_output", cxxopts::value<bool>()->default_value("true"))
+    ("use_value_id", "use_value_id", cxxopts::value<bool>()->default_value("true"))
     ("interpret", "Interpret jit codde", cxxopts::value<bool>()->default_value("false"))
     ("use_weight", "use_weight", cxxopts::value<bool>()->default_value("true"))
     ("jit_validate", "Use jit validate", cxxopts::value<bool>()->default_value("true"))
+    ("jit_limit", "Use jit Limit", cxxopts::value<bool>()->default_value("true"))
     ("disable_string_compare", "disable string compare in jit", cxxopts::value<bool>()->default_value("false"))
     ("q,queries", "Specify queries to run (comma-separated query ids, e.g. \"--queries 1,3,19\"), default is all", cxxopts::value<std::string>()); // NOLINT
   // clang-format on
@@ -63,9 +66,12 @@ int main(int argc, char* argv[]) {
   bool& lazy_load = opossum::Global::get().lazy_load;
   bool& interpret = opossum::Global::get().interpret;
   bool& jit_validate = opossum::Global::get().jit_validate;
+  bool& jit_limit = opossum::Global::get().jit_limit;
   bool& disable_string_compare = opossum::Global::get().disable_string_compare;
   opossum::Global::get().use_times = true;
   bool& use_weight = opossum::Global::get().use_weight;
+  bool& reference_output = opossum::Global::get().reference_output;
+  bool& use_value_id = opossum::Global::get().use_value_id;
 
   std::vector<opossum::QueryID> query_ids;
 
@@ -78,8 +84,11 @@ int main(int argc, char* argv[]) {
     lazy_load = json_config.value("lazy_load", true);
     interpret = json_config.value("interpret", false);
     jit_validate = json_config.value("jit_validate", true);
+    jit_limit = json_config.value("jit_limit", true);
     disable_string_compare = json_config.value("disable_string_compare", false);
     use_weight = json_config.value("use_weight", true);
+    reference_output = json_config.value("reference_output", true);
+    use_value_id = json_config.value("use_value_id", true);
 
     comma_separated_queries = json_config.value("queries", std::string(""));
 
@@ -104,8 +113,11 @@ int main(int argc, char* argv[]) {
     lazy_load = cli_parse_result["lazy_load"].as<bool>();
     interpret = cli_parse_result["interpret"].as<bool>();
     jit_validate = cli_parse_result["jit_validate"].as<bool>();
+    jit_limit = cli_parse_result["jit_limit"].as<bool>();
     disable_string_compare = cli_parse_result["disable_string_compare"].as<bool>();
     use_weight = cli_parse_result["use_weight"].as<bool>();
+    reference_output = cli_parse_result["reference_output"].as<bool>();
+    use_value_id = cli_parse_result["use_value_id"].as<bool>();
 
     scale_factor = cli_parse_result["scale"].as<float>();
 
@@ -137,8 +149,12 @@ int main(int argc, char* argv[]) {
 
   config->out << "- Jitting is " << bool_to_verb(jit) << std::endl;
   config->out << "- Lazy load is " << bool_to_verb(lazy_load) << std::endl;
+  config->out << "- Reference output is " << bool_to_verb(reference_output) << std::endl;
+  config->out << "- Weight Function is " << bool_to_verb(use_weight) << std::endl;
+  config->out << "- Jit Value ID is " << bool_to_verb(use_value_id) << std::endl;
   config->out << "- Jit interpretation is " << bool_to_verb(interpret) << std::endl;
   config->out << "- Jit validate is " << bool_to_verb(jit_validate) << std::endl;
+  config->out << "- Jit Limit is " << bool_to_verb(jit_limit) << std::endl;
   config->out << "- Jit string compare is " << bool_to_verb(!disable_string_compare) << std::endl;
 
   config->out << "- Benchmarking Queries: [ ";
@@ -178,6 +194,11 @@ int main(int argc, char* argv[]) {
   context.emplace("interpret", bool_to_str(interpret));
   context.emplace("jit_validate", bool_to_str(jit_validate));
   context.emplace("disable_string_compare", bool_to_str(disable_string_compare));
+  context.emplace("jit_limit", bool_to_str(jit_limit));
+  context.emplace("jit_validate", bool_to_str(jit_validate));
+  context.emplace("reference_output", bool_to_str(reference_output));
+  context.emplace("use_value_id", bool_to_str(use_value_id));
+  context.emplace("use_weight", bool_to_str(use_weight));
 
   // Run the benchmark
   opossum::BenchmarkRunner(*config, std::make_unique<opossum::TPCHQueryGenerator>(query_ids), context).run();

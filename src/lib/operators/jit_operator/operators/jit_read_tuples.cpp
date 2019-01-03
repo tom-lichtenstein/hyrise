@@ -299,7 +299,7 @@ void JitReadTuples::execute(JitRuntimeContext& context) const {
 #if JIT_MEASURE
   context.begin_operator = std::chrono::high_resolution_clock::now();
 #endif
-  const auto chunk_size = context.chunk_size;
+  auto& chunk_size = context.chunk_size;
   auto& chunk_offset = context.chunk_offset;
   for (; chunk_offset < chunk_size; ++chunk_offset) {
     _emit(context);
