@@ -162,7 +162,7 @@ bool expressions_are_complex(const std::vector<std::shared_ptr<AbstractExpressio
   return false;
 }
 
-float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::shared_ptr<AbstractLQPNode>& input_node, const bool root_node) {
+float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::shared_ptr<AbstractLQPNode>& input_node, const bool first_node) {
   if (const auto projection_node = std::dynamic_pointer_cast<ProjectionNode>(node)) {
     float counter = 0;
     for (const auto& expression : projection_node->expressions) {
@@ -170,8 +170,6 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
     }
     return counter == 1 ? .5f : counter;
   } else if (const auto aggregate_node = std::dynamic_pointer_cast<AggregateNode>(node)) {
-    //aggregate_node->get_statistics()
-    // if (aggregate_node->group_by_expressions.empty()) return -1000;
     float weight = aggregate_node->group_by_expressions.size() > 2 ? 1 : 0;
     size_t string_expressions = 0;
     for (const auto& expression : aggregate_node->group_by_expressions) {
@@ -193,7 +191,7 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
       }
     }
     weight -= .1 * string_expressions;
-    return std::min(weight, 2.f); //non_string_expressions ? 2 : 0;  // aggregate_node->group_by_expressions.size();
+    return std::min(weight, 2.f);
   } else if (const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(node)) {
     float weight = 0;
     size_t complexity = 0;
@@ -204,28 +202,16 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
       ++complexity;
       if (sub_expression->arguments[0]->data_type() == DataType::String) {
         if (!can_translate_predicate_to_predicate_value_id_expression(*sub_expression, input_node)) {
-          weight -= 2;
-        } else {
-          try {
-            if (input_node->get_statistics()->row_count() > 55000000) {
-              ++complexity;
-              weight += 1;
-            }
-          } catch(std::logic_error) {}
+          weight -= 1.6;
         }
       }
       weight += 1;
       return ExpressionVisitation::VisitArguments;
     });
     if (weight < 0 || complexity > 1) return weight;
-    float selectivity = 0;
+    float selectivity = -1;
     try {
-      if (const auto input_row_count = node->left_input()->get_statistics()->row_count()) {
-        selectivity = node->get_statistics()->row_count() / input_row_count;
-      }
-
-      if (predicate_node->predicate->arguments[0]->data_type() == DataType::String
-              && input_node->type == LQPNodeType::StoredTable) {
+      if ( input_node->type == LQPNodeType::StoredTable) {
         auto& cache = SQLQueryCache<float, std::shared_ptr<PredicateNode>>::get();
         if (const auto entry = cache.try_get(predicate_node)) {
           selectivity = *entry;
@@ -233,11 +219,12 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
           const auto stored_table_node = std::dynamic_pointer_cast<StoredTableNode>(input_node);
           auto get_table = std::make_shared<GetTable>(stored_table_node->table_name);
           get_table->execute();
+          const auto input_table = get_table->get_output();
           const auto& operator_predicates = OperatorScanPredicate::from_expression(*predicate_node->predicate, *input_node);
           const auto predicate_vars = operator_predicates->front();
           std::shared_ptr<AbstractPredicateExpression> new_predicate;
 
-          const auto& column_definition = get_table->get_output()->column_definitions().at(predicate_vars.column_id);
+          const auto& column_definition = input_table->column_definitions().at(predicate_vars.column_id);
           const std::shared_ptr<AbstractExpression> column_expression = expression_functional::pqp_column_(predicate_vars.column_id, column_definition.data_type, column_definition.nullable, column_definition.name);
           if (predicate_vars.predicate_condition == PredicateCondition::Between) {
             if (is_variant(predicate_vars.value) && is_variant(*predicate_vars.value2)) {
@@ -251,7 +238,7 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
           if (new_predicate) {
             auto scan = std::make_shared<TableScan>(get_table, new_predicate);
             scan->execute();
-            if (const auto input_size = get_table->get_output()->row_count()) {
+            if (const auto input_size = input_table->row_count()) {
               const auto output_size = scan->get_output()->row_count();
               selectivity = 1.f * output_size / input_size;
             }
@@ -263,16 +250,24 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
         }
       }
 
-
+      if (selectivity < 0) {
+        if (const auto input_row_count = node->left_input()->get_statistics()->row_count()) {
+          selectivity = node->get_statistics()->row_count() / input_row_count;
+        }
+      }
     } catch (std::logic_error err) {
       // Not all nodes support statistics yet
       selectivity = 1;
     }
-    // std::cout << "selectivity: " << selectivity << std::endl;
-    // node->print(std::cout);
-    if (selectivity < 0.001) return -1;
-    if (selectivity < 0.05) return 0;
-    return selectivity < 0.3 ? selectivity * weight : weight;
+    std::cout << "selectivity: " << selectivity << std::endl;
+    node->print(std::cout);
+    if (first_node) {
+      if (selectivity < .3) return -2;
+      if (selectivity < .4) return 0;
+      if (selectivity > .7) return std::min(weight, 1.9f);
+    }
+    if (selectivity > .45) return std::min(weight, 1.f);
+    return selectivity * std::min(weight, 1.f);
   } else if (node->type == LQPNodeType::Validate) {
     return 1;
   } else if (node->type == LQPNodeType::Limit) {
@@ -360,7 +355,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
     _visit(node, [&](auto& current_node) {
       const bool is_jittable = _node_is_jittable(current_node, use_value_id, node == current_node);
       if (is_jittable) {
-        weight += compute_weigth(current_node, input_node, node == current_node);
+        weight += compute_weigth(current_node, input_node, input_node == current_node->left_input());
       }
       return is_jittable;
     });
