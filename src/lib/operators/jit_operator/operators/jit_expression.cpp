@@ -271,9 +271,23 @@ Value<T> JitExpression::compute_and_get(JitRuntimeContext& context) const {
 #if JIT_LAZY_LOAD
     if (_load_column) {
 #if JIT_READER_WRAPPER
-      return _input_segment_wrapper->read_and_get_value(context, T());
+      const auto& result = _input_segment_wrapper->read_and_get_value(context, T());
+      if (_also_set) {
+        _result_value.set<T>(result.value, context);
+        if (_result_value.is_nullable()) {
+          _result_value.set_is_null(result.is_null, context);
+        }
+      }
+      return result;
 #else
-      return context.inputs[_reader_index]->read_and_get_value(context, T());
+      const auto& result = return context.inputs[_reader_index]->read_and_get_value(context, T());
+      if (_also_set) {
+        _result_value.set<T>(result.value, context);
+        if (_result_value.is_nullable()) {
+          _result_value.set_is_null(result.is_null, context);
+        }
+      }
+      return result;
 #endif
     }
 #endif

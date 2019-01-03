@@ -20,7 +20,7 @@ class JitFilter : public AbstractJittable {
   JitTupleValue condition();
 
   std::map<size_t, bool> accessed_column_ids() const final;
-  void set_load_column(const size_t tuple_id, const std::shared_ptr<BaseJitSegmentReaderWrapper> input_segment_wrapper) const;
+  void set_load_column(const size_t tuple_id, const std::shared_ptr<BaseJitSegmentReaderWrapper> input_segment_wrapper, const bool also_set) const;
 
  private:
   void _consume(JitRuntimeContext& context) const final;

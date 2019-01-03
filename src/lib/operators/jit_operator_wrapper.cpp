@@ -100,20 +100,23 @@ void JitOperatorWrapper::insert_loads(const bool lazy) {
   for (auto& jit_operator : _specialized_function->jit_operators) {
     for (const auto& pair : *ids_itr++) {
       if (column_id_used_by_one_operator.count(pair.first)) {
-        if (pair.second && column_id_used_by_one_operator[pair.first]) {
+        // todo does not check for or in filter
+        if (pair.second) {
           // insert within JitCompute operator
           auto compute_ptr = std::dynamic_pointer_cast<JitCompute>(jit_operator);
           if (compute_ptr) {
-            compute_ptr->set_load_column(pair.first, input_wrappers[inverted_input_columns[pair.first]]);
+            compute_ptr->set_load_column(pair.first, input_wrappers[inverted_input_columns[pair.first]], !column_id_used_by_one_operator[pair.first]);
           } else {
             auto filter_ptr = std::dynamic_pointer_cast<JitFilter>(jit_operator);
-            filter_ptr->set_load_column(pair.first, input_wrappers[inverted_input_columns[pair.first]]);
+            filter_ptr->set_load_column(pair.first, input_wrappers[inverted_input_columns[pair.first]], !column_id_used_by_one_operator[pair.first]);
           }
         } else {
           jit_operators.emplace_back(std::make_shared<JitReadValue>(
-              _source()->input_columns()[inverted_input_columns[pair.first]], input_wrappers[inverted_input_columns[pair.first]]));
+            _source()->input_columns()[inverted_input_columns[pair.first]], input_wrappers[inverted_input_columns[pair.first]]));
         }
         column_id_used_by_one_operator.erase(pair.first);
+      } else {
+        Fail("Something is wrong");
       }
     }
     jit_operators.push_back(jit_operator);
@@ -189,6 +192,7 @@ void JitOperatorWrapper::_choose_execute_func() {
 
 std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   const auto in_table = input_left()->get_output();
+//   std::cerr << "Jit Wrapper Input Table: Chunks: " << in_table->chunk_count() << " row count: " << in_table->row_count() << std::endl;
   auto out_table = _sink()->create_output_table(in_table->max_chunk_size());
 
   JitRuntimeContext context;

@@ -36,21 +36,30 @@ std::map<size_t, bool> JitCompute::accessed_column_ids() const {
   std::map<size_t, bool> column_ids;
   std::stack<std::shared_ptr<const JitExpression>> stack;
   stack.push(_expression);
+  bool has_or = false;
   while (!stack.empty()) {
     auto current = stack.top();
     stack.pop();
     if (auto right_child = current->right_child()) stack.push(right_child);
     if (auto left_child = current->left_child()) stack.push(left_child);
+    if (current->expression_type() == JitExpressionType::Or) {
+      has_or = true;
+    }
     if (current->expression_type() == JitExpressionType::Column) {
       const auto tuple_index = current->result().tuple_index();
-      column_ids[tuple_index] = !column_ids.count(tuple_index);
+      if (has_or) {
+        column_ids[tuple_index] = !column_ids.count(tuple_index);
+      } else {
+        column_ids[tuple_index] = true;
+      }
     }
   }
   return column_ids;
 }
 
-void JitCompute::set_load_column(const size_t tuple_id, const std::shared_ptr<BaseJitSegmentReaderWrapper> _input_segment_wrapper) const {
+void JitCompute::set_load_column(const size_t tuple_id, const std::shared_ptr<BaseJitSegmentReaderWrapper> _input_segment_wrapper, const bool also_set) const {
   std::stack<std::shared_ptr<const JitExpression>> stack;
+  size_t counter = 0;
   stack.push(_expression);
   while (!stack.empty()) {
     auto current = stack.top();
@@ -60,7 +69,21 @@ void JitCompute::set_load_column(const size_t tuple_id, const std::shared_ptr<Ba
     if (current->expression_type() == JitExpressionType::Column) {
       const auto tuple_index = current->result().tuple_index();
       if (tuple_id == tuple_index) {
-        current->set_load_column(_input_segment_wrapper);
+        ++counter;
+      }
+    }
+  }
+
+  stack.push(_expression);
+  while (!stack.empty()) {
+    auto current = stack.top();
+    stack.pop();
+    if (auto right_child = current->right_child()) stack.push(right_child);
+    if (auto left_child = current->left_child()) stack.push(left_child);
+    if (current->expression_type() == JitExpressionType::Column) {
+      const auto tuple_index = current->result().tuple_index();
+      if (tuple_id == tuple_index) {
+        current->set_load_column(_input_segment_wrapper, counter || also_set);
         return;
       }
     }
