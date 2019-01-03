@@ -393,20 +393,6 @@ int main(int argc, char* argv[]) {
     opossum::JitEvaluationHelper::get().experiment() = experiment;
 
     auto query_pairs = get_query_string(experiment["query_id"].get<std::string>());
-    if (query_pairs.size() > 1) {
-      if (experiment["task"] != "run") {
-        query_pairs = {query_pairs.front()};
-      } else {
-        size_t warm_up = num_repetitions;
-        if (experiment.count("warmup")) {
-          warm_up = experiment["warmup"].get<size_t>();
-        }
-        for (uint32_t i = 0; i < warm_up; ++i) {
-          reset_all();
-          run(query_pairs[(query_pairs.size()-1)/2].second);
-        }
-      }
-    }
 
     std::vector<double> scale_factors;
     if (experiment.count("scale_factors")) {
