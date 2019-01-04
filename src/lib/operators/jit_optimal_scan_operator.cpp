@@ -88,6 +88,7 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
 
         const auto chunk_size = context.chunk_size;
         auto& chunk_offset = context.chunk_offset;
+        const auto _chunk_id = context.chunk_id;
 
         auto casted_ptr = static_cast<OwnDictionaryReader*>(context.inputs.front().get());
         const int32_t value = context.tuple.get<int>(l_id);
@@ -98,7 +99,7 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
           // static_cast dynamic_cast
           // const auto casted_ptr = context.inputs.front().get();
           if (casted_ptr->read_and_get_value(context, int32_t()).value < value) {
-            output_pos_list->emplace_back(context.chunk_id, context.chunk_offset);
+            output_pos_list->emplace_back(_chunk_id, chunk_offset);
           }
         }
 
@@ -110,6 +111,7 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
 
         const auto chunk_size = context.chunk_size;
         auto& chunk_offset = context.chunk_offset;
+        const auto _chunk_id = context.chunk_id;
 
         auto casted_ptr = static_cast<OwnJitSegmentReader*>(context.inputs.front().get());
         auto output_pos_list = context.output_pos_list;
@@ -117,7 +119,7 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
         for (; chunk_offset < chunk_size; ++chunk_offset) {
           // static_cast dynamic_cast
           if (casted_ptr->read_and_get_value(context, int32_t()).value < val) {
-            output_pos_list->emplace_back(context.chunk_id, context.chunk_offset);
+            output_pos_list->emplace_back(_chunk_id, chunk_offset);
           }
         }
 
