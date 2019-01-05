@@ -195,7 +195,7 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
       }
     }
     // weight -= .1 * string_expressions;
-    return group_by_count > 3 ? std::max(weight, 2.f) : weight;
+    return group_by_count > 3 ? std::max(weight, 1.9f) : weight;
   } else if (const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(node)) {
     float weight = 0;
     size_t complexity = 0;
