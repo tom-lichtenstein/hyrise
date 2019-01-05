@@ -149,6 +149,7 @@ bool expression_is_complex(const std::shared_ptr<AbstractExpression> &expression
     case ExpressionType::Parameter:
     case ExpressionType::LQPColumn:
     case ExpressionType::Aggregate:
+    case ExpressionType::Function:
       return false;
     default:
       return true;
@@ -168,14 +169,17 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
     for (const auto& expression : projection_node->expressions) {
       if (expression->type != ExpressionType::LQPColumn) counter += 1;
     }
+    if (input_node && counter) return counter;
     return counter == 1 ? .5f : counter;
   } else if (const auto aggregate_node = std::dynamic_pointer_cast<AggregateNode>(node)) {
-    float weight = aggregate_node->group_by_expressions.size() > 2 ? 1 : 0;
+    auto group_by_count = aggregate_node->group_by_expressions.size();
+    float weight = 0; // group_by_count > 2 ? 1 : 0;
     size_t string_expressions = 0;
     for (const auto& expression : aggregate_node->group_by_expressions) {
       const auto input_node_column_id = input_node->find_column_id(*expression);
       if (!input_node_column_id) {
-        weight += expressions_are_complex(expression->arguments) ? 1. : 0.9;
+        weight += .9;  //
+        if (false) expressions_are_complex(expression->arguments);  // ? 1. : 0.9;
       }
       if (expression->data_type() == DataType::String) ++string_expressions;
     }
@@ -185,13 +189,13 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
         const auto input_node_column_id = input_node->find_column_id(*argument);
         if (argument->data_type() == DataType::String) ++string_expressions;
         if (!input_node_column_id) {
-          weight += expressions_are_complex(expression->arguments) ? 1. : 0.9;
+          weight += .9; //expressions_are_complex(expression->arguments) ? 1. : 0.9;
         }
 
       }
     }
-    weight -= .1 * string_expressions;
-    return std::min(weight, 2.f);
+    // weight -= .1 * string_expressions;
+    return group_by_count > 3 ? std::max(weight, 2.f) : weight;
   } else if (const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(node)) {
     float weight = 0;
     size_t complexity = 0;
@@ -264,12 +268,13 @@ float compute_weigth(const std::shared_ptr<AbstractLQPNode> &node, const std::sh
     if (first_node) {
       if (selectivity < .3) return -2;
       if (selectivity < .4) return 0;
-      if (selectivity > .7) return std::min(weight, 1.9f);
+      if (selectivity > .7) return std::max(weight, 1.9f);
     }
-    if (selectivity > .45) return std::min(weight, 1.f);
-    return selectivity * std::min(weight, 1.f);
+    if (selectivity > .6) return std::max(weight, 1.f);
+    return 0.1;
+    //return selectivity * std::min(weight, 1.f);
   } else if (node->type == LQPNodeType::Validate) {
-    return 1;
+    return first_node ? 1.8 : 0.1;
   } else if (node->type == LQPNodeType::Limit) {
     return 1;
   }
@@ -355,7 +360,11 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_sub_pl
     _visit(node, [&](auto& current_node) {
       const bool is_jittable = _node_is_jittable(current_node, use_value_id, node == current_node);
       if (is_jittable) {
-        weight += compute_weigth(current_node, input_node, input_node == current_node->left_input());
+        auto current_input_node = current_node->left_input();
+        while (current_input_node->type == LQPNodeType::Projection && input_node != current_input_node) {
+          current_input_node = current_input_node->left_input();
+        }
+        weight += compute_weigth(current_node, input_node, input_node == current_input_node);
       }
       return is_jittable;
     });
