@@ -21,6 +21,12 @@ namespace opossum {
 
 const std::string JitOptimalScanOperator::name() const { return "JitOperatorWrapper"; }
 
+
+std::shared_ptr<JitRuntimeContext> JitOptimalScanOperator::_get_context() {
+  return std::make_shared<JitRuntimeContext>();
+}
+
+
 std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
   // std::cerr << "Using custom jit scan operator" << std::endl;
 
@@ -42,11 +48,6 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
   }
 
   {
-    JitRuntimeContext context;
-    if (transaction_context_is_set()) {
-      context.transaction_id = transaction_context()->transaction_id();
-      context.snapshot_commit_id = transaction_context()->snapshot_commit_id();
-    }
     auto read_tuples = JitReadTuples(true);
     const auto input_col_tuple = read_tuples.add_input_column(DataType::Int, false, col_a, dict_segment);
     // const auto col_x = right_table->column_id_by_name("X100000");
@@ -64,6 +65,13 @@ std::shared_ptr<const Table> JitOptimalScanOperator::_on_execute() {
 
       read_tuples.add_value_id_predicate(*jit_expression);
 
+    }
+
+    auto context_ptr = _get_context();
+    auto& context = *context_ptr;
+    if (transaction_context_is_set()) {
+      context.transaction_id = transaction_context()->transaction_id();
+      context.snapshot_commit_id = transaction_context()->snapshot_commit_id();
     }
 
     // constexpr auto tmp_id = 2;

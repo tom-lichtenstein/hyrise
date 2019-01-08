@@ -30,6 +30,9 @@ protected:
   }
   void _on_set_parameters(const std::unordered_map<ParameterID, AllTypeVariant>& parameters) override {}
   void _on_set_transaction_context(const std::weak_ptr<TransactionContext>& transaction_context) override {}
+
+  __attribute__((noinline))
+  std::shared_ptr<JitRuntimeContext> _get_context();
 };
 
 }  // namespace opossum
