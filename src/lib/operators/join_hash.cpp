@@ -200,7 +200,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     // Containers for potential (skipped when left side small) radix partitioning phase
     RadixContainer<LeftType> radix_left;
     RadixContainer<RightType> radix_right;
-    std::vector<std::optional<HashTable<HashedType>>> hashtables;
+    std::vector<std::optional<HashTableWithBuffer<HashedType>>> hashtables;
 
     // Depiction of the hash join parallelization (radix partitioning can be skipped when radix_bits = 0)
     // ===============================================================================================

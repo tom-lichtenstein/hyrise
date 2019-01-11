@@ -1,5 +1,8 @@
 #pragma once
 
+#include <boost/container/pmr/monotonic_buffer_resource.hpp>
+#include <boost/container/pmr/polymorphic_allocator.hpp>
+#include <boost/container/scoped_allocator.hpp>
 #include <boost/container/small_vector.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -47,10 +50,21 @@ using Partition = std::conditional_t<std::is_trivially_destructible_v<T>, uninit
 // smaller side.
 using SmallPosList = boost::container::small_vector<RowID, 1>;
 
+template <typename T>
+using HashTableEntry = std::pair<T, SmallPosList>;
+
+template <typename T>
+using HashTableAllocator = PolymorphicAllocator<HashTableEntry<T>>;
+
 // In case we consider runtime to be more relevant, the flat hash map performs better (measured to be mostly on par
 // with bytell hash map and in some cases up to 5% faster) but is significantly larger than the bytell hash map.
 template <typename T>
-using HashTable = ska::bytell_hash_map<T, SmallPosList>;
+using HashTable = ska::bytell_hash_map<T, SmallPosList, std::hash<T>, std::equal_to<>, HashTableAllocator<T>>;
+
+// It's important for the buffer to come first because the pair is deconstructed in reverse order. The hash table must
+// be deconstructed before the buffer is.
+template <typename T>
+using HashTableWithBuffer = std::pair<std::unique_ptr<boost::container::pmr::monotonic_buffer_resource>, HashTable<T>>;
 
 /*
 This struct contains radix-partitioned data in a contiguous buffer, as well as a list of offsets for each partition.
@@ -201,12 +215,12 @@ RadixContainer<T> materialize_input(const std::shared_ptr<const Table>& in_table
 Build all the hash tables for the partitions of Left. We parallelize this process for all partitions of Left
 */
 template <typename LeftType, typename HashedType>
-std::vector<std::optional<HashTable<HashedType>>> build(const RadixContainer<LeftType>& radix_container) {
+std::vector<std::optional<HashTableWithBuffer<HashedType>>> build(const RadixContainer<LeftType>& radix_container) {
   /*
   NUMA notes:
   The hashtables for each partition P should also reside on the same node as the two vectors leftP and rightP.
   */
-  std::vector<std::optional<HashTable<HashedType>>> hashtables;
+  std::vector<std::optional<HashTableWithBuffer<HashedType>>> hashtables;
   hashtables.resize(radix_container.partition_offsets.size());
 
   std::vector<std::shared_ptr<AbstractTask>> jobs;
@@ -229,7 +243,8 @@ std::vector<std::optional<HashTable<HashedType>>> build(const RadixContainer<Lef
       auto& partition_left = static_cast<Partition<LeftType>&>(*radix_container.elements);
 
       // slightly oversize the hash table to avoid unnecessary rebuilds
-      auto hashtable = HashTable<HashedType>(static_cast<size_t>(partition_size * 1.2));
+      auto buffer = std::make_unique<boost::container::pmr::monotonic_buffer_resource>(2 * partition_size * sizeof(HashTableEntry<HashedType>));
+      auto hashtable = HashTable<HashedType>{static_cast<size_t>(partition_size * 1.2), HashTableAllocator<HashedType>{buffer.get()}};
 
       for (size_t partition_offset = partition_left_begin; partition_offset < partition_left_end; ++partition_offset) {
         auto& element = partition_left[partition_offset];
@@ -247,8 +262,7 @@ std::vector<std::optional<HashTable<HashedType>>> build(const RadixContainer<Lef
           hashtable.emplace(casted_value, SmallPosList{element.row_id});
         }
       }
-
-      hashtables[current_partition_id] = std::move(hashtable);
+      hashtables[current_partition_id] = std::make_pair(std::move(buffer), std::move(hashtable));
     }));
     jobs.back()->schedule();
   }
@@ -360,7 +374,7 @@ RadixContainer<T> partition_radix_parallel(const RadixContainer<T>& radix_contai
   */
 template <typename RightType, typename HashedType, bool consider_null_values>
 void probe(const RadixContainer<RightType>& radix_container,
-           const std::vector<std::optional<HashTable<HashedType>>>& hashtables, std::vector<PosList>& pos_lists_left,
+           const std::vector<std::optional<HashTableWithBuffer<HashedType>>>& hashtables, std::vector<PosList>& pos_lists_left,
            std::vector<PosList>& pos_lists_right, const JoinMode mode) {
   std::vector<std::shared_ptr<AbstractTask>> jobs;
   jobs.reserve(radix_container.partition_offsets.size());
@@ -396,7 +410,7 @@ void probe(const RadixContainer<RightType>& radix_container,
       }
 
       if (hashtables[current_partition_id].has_value()) {
-        const auto& hashtable = hashtables.at(current_partition_id).value();
+        const auto& hashtable = hashtables.at(current_partition_id)->second;
 
         // simple heuristic to estimate result size: half of the partition's rows will match
         // a more conservative pre-allocation would be the size of the left cluster
@@ -494,7 +508,7 @@ void probe(const RadixContainer<RightType>& radix_container,
 
 template <typename RightType, typename HashedType>
 void probe_semi_anti(const RadixContainer<RightType>& radix_container,
-                     const std::vector<std::optional<HashTable<HashedType>>>& hashtables,
+                     const std::vector<std::optional<HashTableWithBuffer<HashedType>>>& hashtables,
                      std::vector<PosList>& pos_lists, const JoinMode mode) {
   std::vector<std::shared_ptr<AbstractTask>> jobs;
   jobs.reserve(radix_container.partition_offsets.size());
@@ -526,7 +540,7 @@ void probe_semi_anti(const RadixContainer<RightType>& radix_container,
             continue;
           }
 
-          const auto& hashtable = hashtables[current_partition_id].value();
+          const auto& hashtable = hashtables[current_partition_id]->second;
           const auto it = hashtable.find(type_cast<HashedType>(row.value));
 
           if ((mode == JoinMode::Semi && it != hashtable.end()) || (mode == JoinMode::Anti && it == hashtable.end())) {

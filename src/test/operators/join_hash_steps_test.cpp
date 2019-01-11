@@ -119,7 +119,7 @@ TEST_F(JoinHashStepsTest, MaterializeAndBuildWithKeepNulls) {
 
   // now that build removed the unneeded init values, map sizes should differ
   EXPECT_EQ(
-      this->get_row_count(hash_map_without_nulls.at(0).value().begin(), hash_map_without_nulls.at(0).value().end()),
+      this->get_row_count(hash_map_without_nulls.at(0).value().second.begin(), hash_map_without_nulls.at(0).value().second.end()),
       table_without_nulls_scanned->get_output()->row_count());
 }
 
