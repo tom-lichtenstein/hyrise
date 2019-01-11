@@ -48,7 +48,7 @@ using Partition = std::conditional_t<std::is_trivially_destructible_v<T>, uninit
 // The small_vector holds the first n values in local storage and only resorts to heap storage after that. 1 is chosen
 // as n because in many cases, we join on primary key attributes where by definition we have only one match on the
 // smaller side.
-using SmallPosList = boost::container::small_vector<RowID, 1>;
+using SmallPosList = boost::container::small_vector<RowID, 1, PolymorphicAllocator<RowID>>;
 
 template <typename T>
 using HashTableEntry = std::pair<T, SmallPosList>;
@@ -245,6 +245,7 @@ std::vector<std::optional<HashTableWithBuffer<HashedType>>> build(const RadixCon
       // slightly oversize the hash table to avoid unnecessary rebuilds
       auto buffer = std::make_unique<boost::container::pmr::monotonic_buffer_resource>(2 * partition_size * sizeof(HashTableEntry<HashedType>));
       auto hashtable = HashTable<HashedType>{static_cast<size_t>(partition_size * 1.2), HashTableAllocator<HashedType>{buffer.get()}};
+      auto pos_list_allocator = boost::container::small_vector_allocator<PolymorphicAllocator<RowID>>{buffer.get()};
 
       for (size_t partition_offset = partition_left_begin; partition_offset < partition_left_end; ++partition_offset) {
         auto& element = partition_left[partition_offset];
@@ -259,7 +260,7 @@ std::vector<std::optional<HashTableWithBuffer<HashedType>>> build(const RadixCon
         if (it != hashtable.end()) {
           it->second.emplace_back(element.row_id);
         } else {
-          hashtable.emplace(casted_value, SmallPosList{element.row_id});
+          hashtable.emplace(casted_value, SmallPosList{{element.row_id}, pos_list_allocator});
         }
       }
       hashtables[current_partition_id] = std::make_pair(std::move(buffer), std::move(hashtable));
