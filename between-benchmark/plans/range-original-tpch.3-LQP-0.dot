@@ -1,0 +1,32 @@
+digraph G {
+bgcolor=black;
+rankdir=BT;
+ratio=compress;
+94378095754320 [color=white, fontcolor=white, label="Alias [l_shipmode, SUM(CASE WHEN o_orderpriority \n= '1-URGENT' OR o_orderpriority = '2-HIGH' THEN 1 \nELSE 0 END) AS high_line_count, SUM(CASE WHEN \no_orderpriority != '1-URGENT' AND o_orderpriority \n!= '2-HIGH' THEN 1 ELSE 0 END) AS low_line_count] ", penwidth=1, shape=rectangle];
+94378084119504 [color=white, fontcolor=white, label="[Sort] l_shipmode (Ascending)", penwidth=1, shape=rectangle];
+94378016569728 [color=white, fontcolor=white, label="[Aggregate] GroupBy: [l_shipmode] Aggregates: \n[SUM(CASE WHEN o_orderpriority = '1-URGENT' OR \no_orderpriority = '2-HIGH' THEN 1 ELSE 0 END), \nSUM(CASE WHEN o_orderpriority != '1-URGENT' AND \no_orderpriority != '2-HIGH' THEN 1 ELSE 0 END)] ", penwidth=1, shape=rectangle];
+94378857577024 [color=white, fontcolor=white, label="[Projection] CASE WHEN o_orderpriority = \n'1-URGENT' OR o_orderpriority = '2-HIGH' THEN 1 \nELSE 0 END, CASE WHEN o_orderpriority != \n'1-URGENT' AND o_orderpriority != '2-HIGH' THEN 1 \nELSE 0 END, l_shipmode ", penwidth=1, shape=rectangle];
+94377997034752 [color=white, fontcolor=white, label="[Join] Mode: Inner o_orderkey = l_orderkey", penwidth=1, shape=rectangle];
+94378862491552 [color=white, fontcolor=white, label="[Projection] o_orderkey, o_orderpriority", penwidth=1, shape=rectangle];
+94378013487504 [color=white, fontcolor=white, label="[StoredTable] Name: 'orders'", penwidth=1, shape=rectangle];
+94378016156080 [color=white, fontcolor=white, label="[Projection] l_orderkey, l_shipdate, \nl_commitdate, l_receiptdate, l_shipmode ", penwidth=1, shape=rectangle];
+94378862490992 [color=white, fontcolor=white, label="[Predicate] (l_shipmode) IN ('MAIL', 'SHIP')", penwidth=1, shape=rectangle];
+94378063080576 [color=white, fontcolor=white, label="[Predicate] l_shipdate < l_commitdate", penwidth=1, shape=rectangle];
+94377838471584 [color=white, fontcolor=white, label="[Predicate] l_commitdate < l_receiptdate", penwidth=1, shape=rectangle];
+94378065487072 [color=white, fontcolor=white, label="[Predicate] l_receiptdate < '1995-01-01'", penwidth=1, shape=rectangle];
+94378071716896 [color=white, fontcolor=white, label="[Predicate] l_receiptdate >= '1994-01-01'", penwidth=1, shape=rectangle];
+94378864636144 [color=white, fontcolor=white, label="[StoredTable] Name: 'lineitem'", penwidth=1, shape=rectangle];
+94378084119504->94378095754320  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94378016569728->94378084119504  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94378857577024->94378016569728  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94377997034752->94378857577024  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 0.0% estd.", penwidth=4, style=solid];
+94378862491552->94377997034752  [color=white, dir=forward, fontcolor=white, label=" 1500000.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94378013487504->94378862491552  [color=white, dir=forward, fontcolor=white, label=" 1500000.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94378016156080->94377997034752  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94378862490992->94378016156080  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94378063080576->94378862490992  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94377838471584->94378063080576  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94378065487072->94377838471584  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94378071716896->94378065487072  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94378864636144->94378071716896  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+}

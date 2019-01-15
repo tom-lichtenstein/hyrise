@@ -1,0 +1,43 @@
+digraph G {
+bgcolor=black;
+rankdir=BT;
+ratio=compress;
+94335636255264 [color=white, fontcolor=white, label="Alias [REVENUE]
+
+1 µs 0 ns", penwidth=1, shape=rectangle];
+94334562256672 [color=white, fontcolor=white, label="[Aggregate] GroupBy ColumnIDs:  Aggregates: \nSUM(Column #0)
+
+1 ms 164 µs ", penwidth=2, shape=rectangle];
+94334702209424 [color=white, fontcolor=white, label="Projection
+
+4 ms 160 µs", penwidth=2, shape=rectangle];
+94334702209264 [color=white, fontcolor=white, label="Projection
+
+31 µs 0 ns", penwidth=1, shape=rectangle];
+94334562220912 [color=white, fontcolor=white, label="TableScan
+Impl: BetweenScan
+l_shipdate BETWEEN \n'1994-01-01' AND '1995-01-00'
+
+2 ms 628 µs ", penwidth=2, shape=rectangle];
+94334562252128 [color=white, fontcolor=white, label="TableScan
+Impl: LiteralTableScan
+l_quantity < \n24
+
+10 ms 485 µs ", penwidth=3, shape=rectangle];
+94335126824576 [color=white, fontcolor=white, label="TableScan
+Impl: BetweenScan
+l_discount BETWEEN \n0.05 AND 0.07001
+
+19 ms 173 µs ", penwidth=3, shape=rectangle];
+94335636255456 [color=white, fontcolor=white, label="GetTable
+(lineitem)
+
+0 ns", penwidth=1, shape=rectangle];
+94334562256672->94335636255264  [color=white, dir=forward, fontcolor=white, label="1 row(s)/1 chunk(s)/450B", penwidth=1, style=solid];
+94334702209424->94334562256672  [color=white, dir=forward, fontcolor=white, label="114160 row(s)/61 chunk(s)/474.836KB", penwidth=3, style=solid];
+94334702209264->94334702209424  [color=white, dir=forward, fontcolor=white, label="114160 row(s)/61 chunk(s)/3.674MB", penwidth=3, style=solid];
+94334562220912->94334702209264  [color=white, dir=forward, fontcolor=white, label="114160 row(s)/61 chunk(s)/14.675MB", penwidth=3, style=solid];
+94334562252128->94334562220912  [color=white, dir=forward, fontcolor=white, label="752249 row(s)/61 chunk(s)/96.350MB", penwidth=3, style=solid];
+94335126824576->94334562252128  [color=white, dir=forward, fontcolor=white, label="1637557 row(s)/61 chunk(s)/209.670MB", penwidth=4, style=solid];
+94335636255456->94335126824576  [color=white, dir=forward, fontcolor=white, label="6001215 row(s)/61 chunk(s)/500.660MB", penwidth=4, style=solid];
+}

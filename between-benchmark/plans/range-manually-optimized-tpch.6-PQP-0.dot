@@ -1,0 +1,94 @@
+digraph G {
+bgcolor=black;
+rankdir=BT;
+ratio=compress;
+94334802571872 [color=white, fontcolor=white, label="Projection
+
+1 µs 0 ns", penwidth=1, shape=rectangle];
+94334827815056 [color=white, fontcolor=white, label="Sort
+
+371 µs 0 ns", penwidth=2, shape=rectangle];
+94335649167200 [color=white, fontcolor=white, label="JoinHash
+(Inner Join where s_nationkey = \nn_nationkey)
+
+83 µs 0 ns ", penwidth=1, shape=rectangle];
+94334760808000 [color=white, fontcolor=white, label="Projection
+
+2 µs 0 ns", penwidth=1, shape=rectangle];
+94334761224112 [color=white, fontcolor=white, label="TableScan
+Impl: ExpressionEvaluator
+(s_suppkey) \nIN SUBSELECT (PQP, 0x55cc0865b1c0)
+
+10 s 163 ms ", penwidth=4, shape=rectangle];
+94334726371760 [color=white, fontcolor=white, label="GetTable
+(supplier)
+
+0 ns", penwidth=1, shape=rectangle];
+94334802571712 [color=white, fontcolor=white, label=Projection, penwidth=1, shape=rectangle];
+94334802165120 [color=white, fontcolor=white, label="TableScan
+Impl: Unset
+ps_availqty > SUBSELECT \n(PQP, 0x55cc09972b10) ", penwidth=1, shape=rectangle];
+94335649162320 [color=white, fontcolor=white, label=Projection, penwidth=1, shape=rectangle];
+94335649166624 [color=white, fontcolor=white, label="TableScan
+Impl: Unset
+(ps_partkey) IN SUBSELECT \n(PQP, 0x55cc060bc080) ", penwidth=1, shape=rectangle];
+94334802574976 [color=white, fontcolor=white, label="GetTable
+(partsupp)", penwidth=1, shape=rectangle];
+94334763122816 [color=white, fontcolor=white, label=Projection, penwidth=1, shape=rectangle];
+94334763128320 [color=white, fontcolor=white, label=Projection, penwidth=1, shape=rectangle];
+94334827993760 [color=white, fontcolor=white, label="TableScan
+Impl: Unset
+p_name LIKE 'forest%'", penwidth=1, shape=rectangle];
+94334802576400 [color=white, fontcolor=white, label="GetTable
+(part)", penwidth=1, shape=rectangle];
+94334822591248 [color=white, fontcolor=white, label=Projection, penwidth=1, shape=rectangle];
+94334831969952 [color=white, fontcolor=white, label="[Aggregate] GroupBy ColumnIDs:  Aggregates: \nSUM(Column #2) ", penwidth=1, shape=rectangle];
+94334788482208 [color=white, fontcolor=white, label=Projection, penwidth=1, shape=rectangle];
+94334763078240 [color=white, fontcolor=white, label="TableScan
+Impl: Unset
+l_shipdate BETWEEN \n'1994-01-01' AND '1995-01-00' ", penwidth=1, shape=rectangle];
+94335648092880 [color=white, fontcolor=white, label="TableScan
+Impl: Unset
+l_suppkey = \nParameter[name=ps_suppkey;id=1] ", penwidth=1, shape=rectangle];
+94335648092304 [color=white, fontcolor=white, label="TableScan
+Impl: Unset
+l_partkey = \nParameter[name=ps_partkey;id=0] ", penwidth=1, shape=rectangle];
+94334829911296 [color=white, fontcolor=white, label="GetTable
+(lineitem)", penwidth=1, shape=rectangle];
+94334829910000 [color=white, fontcolor=white, label="Projection
+
+1 µs 0 ns", penwidth=1, shape=rectangle];
+94334802845968 [color=white, fontcolor=white, label="TableScan
+Impl: LiteralTableScan
+n_name = \n'CANADA'
+
+5 µs 0 ns ", penwidth=1, shape=rectangle];
+94334802571520 [color=white, fontcolor=white, label="GetTable
+(nation)
+
+0 ns", penwidth=1, shape=rectangle];
+94334827815056->94334802571872  [color=white, dir=forward, fontcolor=white, label="186 row(s)/1 chunk(s)/22.504KB", penwidth=2, style=solid];
+94335649167200->94334827815056  [color=white, dir=forward, fontcolor=white, label="186 row(s)/1 chunk(s)/9.556KB", penwidth=2, style=solid];
+94334760808000->94335649167200  [color=white, dir=forward, fontcolor=white, label="4397 row(s)/1 chunk(s)/141.203KB", penwidth=2, style=solid];
+94334761224112->94334760808000  [color=white, dir=forward, fontcolor=white, label="4397 row(s)/1 chunk(s)/246.924KB", penwidth=2, style=solid];
+94334726371760->94334761224112  [color=white, dir=forward, fontcolor=white, label="10000 row(s)/1 chunk(s)/1.610MB", penwidth=2, style=solid];
+94334802571712->94334761224112  [color=white, dir=forward, fontcolor=white, label="uncorrelated subquery", penwidth=1, style=dashed];
+94334802165120->94334802571712  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94335649162320->94334802165120  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94335649166624->94335649162320  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94334802574976->94335649166624  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94334763122816->94335649166624  [color=white, dir=forward, fontcolor=white, label="uncorrelated subquery", penwidth=1, style=dashed];
+94334763128320->94334763122816  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94334827993760->94334763128320  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94334802576400->94334827993760  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94334822591248->94334802165120  [color=white, dir=forward, fontcolor=white, label="correlated subquery", penwidth=1, style=dashed];
+94334831969952->94334822591248  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94334788482208->94334831969952  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94334763078240->94334788482208  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94335648092880->94334763078240  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94335648092304->94335648092880  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94334829911296->94335648092304  [color=white, dir=forward, fontcolor=white, label="", penwidth=1, style=solid];
+94334829910000->94335649167200  [color=white, dir=forward, fontcolor=white, label="1 row(s)/1 chunk(s)/385B", penwidth=1, style=solid];
+94334802845968->94334829910000  [color=white, dir=forward, fontcolor=white, label="1 row(s)/1 chunk(s)/533B", penwidth=1, style=solid];
+94334802571520->94334802845968  [color=white, dir=forward, fontcolor=white, label="25 row(s)/1 chunk(s)/2.869KB", penwidth=1, style=solid];
+}

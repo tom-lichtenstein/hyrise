@@ -1,0 +1,9 @@
+{
+  "visualize": true,
+  "verbose": false,
+  "queries": "between/range-manually-optimized-tpch.sql",
+  "tables": "tables",
+  "encoding": "Dictionary",
+  "output": "between/results-dictionary-manually-optimized.txt",
+  "time": 60
+}

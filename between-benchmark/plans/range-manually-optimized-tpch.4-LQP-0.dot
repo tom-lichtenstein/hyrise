@@ -1,0 +1,24 @@
+digraph G {
+bgcolor=black;
+rankdir=BT;
+ratio=compress;
+94334831948720 [color=white, fontcolor=white, label="Alias [(100 * SUM(CASE WHEN p_type LIKE 'PROMO%' \nTHEN l_extendedprice * (1 - l_discount) ELSE 0 \nEND)) / SUM(l_extendedprice * (1 - l_discount)) \nAS promo_revenue] ", penwidth=1, shape=rectangle];
+94334832173232 [color=white, fontcolor=white, label="[Projection] (100 * SUM(CASE WHEN p_type LIKE \n'PROMO%' THEN l_extendedprice * (1 - l_discount) \nELSE 0 END)) / SUM(l_extendedprice * (1 - \nl_discount)) ", penwidth=1, shape=rectangle];
+94334831974400 [color=white, fontcolor=white, label="[Aggregate] GroupBy: [] Aggregates: \n[SUM(l_extendedprice * (1 - l_discount)), \nSUM(CASE WHEN p_type LIKE 'PROMO%' THEN \nl_extendedprice * (1 - l_discount) ELSE 0 END)] ", penwidth=1, shape=rectangle];
+94335584462800 [color=white, fontcolor=white, label="[Projection] l_extendedprice * (1 - l_discount), \nCASE WHEN p_type LIKE 'PROMO%' THEN \nl_extendedprice * (1 - l_discount) ELSE 0 END ", penwidth=1, shape=rectangle];
+94335587718304 [color=white, fontcolor=white, label="[Join] Mode: Inner l_partkey = p_partkey", penwidth=1, shape=rectangle];
+94334831948880 [color=white, fontcolor=white, label="[Projection] l_partkey, l_extendedprice, \nl_discount, l_shipdate ", penwidth=1, shape=rectangle];
+94334847109808 [color=white, fontcolor=white, label="[Predicate] l_shipdate BETWEEN '1995-09-01' AND \n'1995-10-00' ", penwidth=1, shape=rectangle];
+94334772288592 [color=white, fontcolor=white, label="[StoredTable] Name: 'lineitem'", penwidth=1, shape=rectangle];
+94334845410896 [color=white, fontcolor=white, label="[Projection] p_partkey, p_type", penwidth=1, shape=rectangle];
+94334711518992 [color=white, fontcolor=white, label="[StoredTable] Name: 'part'", penwidth=1, shape=rectangle];
+94334832173232->94334831948720  [color=white, dir=forward, fontcolor=white, label=" 6001214.5 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94334831974400->94334832173232  [color=white, dir=forward, fontcolor=white, label=" 6001214.5 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94335584462800->94334831974400  [color=white, dir=forward, fontcolor=white, label=" 6001214.5 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94335587718304->94335584462800  [color=white, dir=forward, fontcolor=white, label=" 6001214.5 row(s) | 0.0% estd.", penwidth=4, style=solid];
+94334831948880->94335587718304  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94334847109808->94334831948880  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94334772288592->94334847109808  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94334845410896->94335587718304  [color=white, dir=forward, fontcolor=white, label=" 200000.0 row(s) | 100.0% estd.", penwidth=3, style=solid];
+94334711518992->94334845410896  [color=white, dir=forward, fontcolor=white, label=" 200000.0 row(s) | 100.0% estd.", penwidth=3, style=solid];
+}

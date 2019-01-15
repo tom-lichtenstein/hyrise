@@ -1,0 +1,9 @@
+{
+  "visualize": true,
+  "verbose": false,
+  "queries": "between/range-original-tpch.sql",
+  "tables": "tables",
+  "encoding": "Unencoded",
+  "output": "between/results-unencoded-original.txt",
+  "time": 60
+}

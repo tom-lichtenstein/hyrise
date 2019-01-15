@@ -1,0 +1,118 @@
+digraph G {
+bgcolor=black;
+rankdir=BT;
+ratio=compress;
+94334832249952 [color=white, fontcolor=white, label="Alias [n_name
+revenue]
+
+1 µs 0 ns", penwidth=1, shape=rectangle];
+94334562238928 [color=white, fontcolor=white, label="Sort
+
+13 µs 0 ns", penwidth=1, shape=rectangle];
+94334562100560 [color=white, fontcolor=white, label="[Aggregate] GroupBy ColumnIDs: 1 Aggregates: \nSUM(Column #0)
+
+306 µs 0 ns ", penwidth=2, shape=rectangle];
+94334562251968 [color=white, fontcolor=white, label="Projection
+
+3 ms 970 µs", penwidth=2, shape=rectangle];
+94334334501376 [color=white, fontcolor=white, label="TableScan
+Impl: ColumnComparison
+c_nationkey = \ns_nationkey
+
+3 ms 970 µs ", penwidth=2, shape=rectangle];
+94334562250960 [color=white, fontcolor=white, label="JoinHash
+(Inner Join where c_custkey = \no_custkey)
+
+20 ms 200 µs ", penwidth=3, shape=rectangle];
+94334562093216 [color=white, fontcolor=white, label="Projection
+
+124 µs 0 ns", penwidth=2, shape=rectangle];
+94334655396960 [color=white, fontcolor=white, label="GetTable
+(customer)
+
+0 ns", penwidth=1, shape=rectangle];
+94334562244896 [color=white, fontcolor=white, label="JoinHash
+(Inner Join where o_orderkey = \nl_orderkey)
+
+48 ms 277 µs ", penwidth=3, shape=rectangle];
+94334562101568 [color=white, fontcolor=white, label="Projection
+
+7 µs 0 ns", penwidth=1, shape=rectangle];
+94334562099024 [color=white, fontcolor=white, label="TableScan
+Impl: BetweenScan
+o_orderdate BETWEEN \n'1994-01-01' AND '1995-01-00'
+
+3 ms 87 µs ", penwidth=2, shape=rectangle];
+94334655415968 [color=white, fontcolor=white, label="GetTable
+(orders)
+
+0 ns", penwidth=1, shape=rectangle];
+94334562098752 [color=white, fontcolor=white, label="JoinHash
+(Inner Join where l_suppkey = \ns_suppkey)
+
+88 ms 35 µs ", penwidth=3, shape=rectangle];
+94334832251024 [color=white, fontcolor=white, label="Projection
+
+1 ms 462 µs", penwidth=2, shape=rectangle];
+94334655429248 [color=white, fontcolor=white, label="GetTable
+(lineitem)
+
+0 ns", penwidth=1, shape=rectangle];
+94334562247856 [color=white, fontcolor=white, label="JoinHash
+(Inner Join where s_nationkey = \nn_nationkey)
+
+146 µs 0 ns ", penwidth=2, shape=rectangle];
+94334562097216 [color=white, fontcolor=white, label="Projection
+
+22 µs 0 ns", penwidth=1, shape=rectangle];
+94334655397216 [color=white, fontcolor=white, label="GetTable
+(supplier)
+
+0 ns", penwidth=1, shape=rectangle];
+94334562098480 [color=white, fontcolor=white, label="JoinHash
+(Inner Join where n_regionkey = \nr_regionkey)
+
+47 µs 0 ns ", penwidth=1, shape=rectangle];
+94334562251264 [color=white, fontcolor=white, label="Projection
+
+2 µs 0 ns", penwidth=1, shape=rectangle];
+94334655404336 [color=white, fontcolor=white, label="GetTable
+(nation)
+
+0 ns", penwidth=1, shape=rectangle];
+94334562094432 [color=white, fontcolor=white, label="Projection
+
+0 ns", penwidth=1, shape=rectangle];
+94334562244048 [color=white, fontcolor=white, label="TableScan
+Impl: LiteralTableScan
+r_name = \n'AMERICA'
+
+15 µs 0 ns ", penwidth=1, shape=rectangle];
+94334510715312 [color=white, fontcolor=white, label="GetTable
+(region)
+
+0 ns", penwidth=1, shape=rectangle];
+94334562238928->94334832249952  [color=white, dir=forward, fontcolor=white, label="5 row(s)/1 chunk(s)/831B", penwidth=1, style=solid];
+94334562100560->94334562238928  [color=white, dir=forward, fontcolor=white, label="5 row(s)/1 chunk(s)/831B", penwidth=1, style=solid];
+94334562251968->94334562100560  [color=white, dir=forward, fontcolor=white, label="7375 row(s)/32 chunk(s)/280.500KB", penwidth=2, style=solid];
+94334334501376->94334562251968  [color=white, dir=forward, fontcolor=white, label="7375 row(s)/32 chunk(s)/977.039KB", penwidth=2, style=solid];
+94334562250960->94334334501376  [color=white, dir=forward, fontcolor=white, label="184970 row(s)/32 chunk(s)/23.709MB", penwidth=3, style=solid];
+94334562093216->94334562250960  [color=white, dir=forward, fontcolor=white, label="150000 row(s)/2 chunk(s)/3.051MB", penwidth=3, style=solid];
+94334655396960->94334562093216  [color=white, dir=forward, fontcolor=white, label="150000 row(s)/2 chunk(s)/25.479MB", penwidth=3, style=solid];
+94334562244896->94334562250960  [color=white, dir=forward, fontcolor=white, label="184970 row(s)/16 chunk(s)/20.731MB", penwidth=3, style=solid];
+94334562101568->94334562244896  [color=white, dir=forward, fontcolor=white, label="227597 row(s)/15 chunk(s)/5.466MB", penwidth=3, style=solid];
+94334562099024->94334562101568  [color=white, dir=forward, fontcolor=white, label="227597 row(s)/15 chunk(s)/16.396MB", penwidth=3, style=solid];
+94334655415968->94334562099024  [color=white, dir=forward, fontcolor=white, label="1500000 row(s)/15 chunk(s)/114.197MB", penwidth=4, style=solid];
+94334562098752->94334562244896  [color=white, dir=forward, fontcolor=white, label="1222276 row(s)/1 chunk(s)/107.561MB", penwidth=4, style=solid];
+94334832251024->94334562098752  [color=white, dir=forward, fontcolor=white, label="6001215 row(s)/61 chunk(s)/156.234MB", penwidth=4, style=solid];
+94334655429248->94334832251024  [color=white, dir=forward, fontcolor=white, label="6001215 row(s)/61 chunk(s)/500.660MB", penwidth=4, style=solid];
+94334562247856->94334562098752  [color=white, dir=forward, fontcolor=white, label="2036 row(s)/1 chunk(s)/114.713KB", penwidth=2, style=solid];
+94334562097216->94334562247856  [color=white, dir=forward, fontcolor=white, label="10000 row(s)/1 chunk(s)/190.704KB", penwidth=2, style=solid];
+94334655397216->94334562097216  [color=white, dir=forward, fontcolor=white, label="10000 row(s)/1 chunk(s)/1.610MB", penwidth=2, style=solid];
+94334562098480->94334562247856  [color=white, dir=forward, fontcolor=white, label="5 row(s)/1 chunk(s)/765B", penwidth=1, style=solid];
+94334562251264->94334562098480  [color=white, dir=forward, fontcolor=white, label="25 row(s)/1 chunk(s)/1.971KB", penwidth=1, style=solid];
+94334655404336->94334562251264  [color=white, dir=forward, fontcolor=white, label="25 row(s)/1 chunk(s)/2.869KB", penwidth=1, style=solid];
+94334562094432->94334562098480  [color=white, dir=forward, fontcolor=white, label="1 row(s)/1 chunk(s)/385B", penwidth=1, style=solid];
+94334562244048->94334562094432  [color=white, dir=forward, fontcolor=white, label="1 row(s)/1 chunk(s)/458B", penwidth=1, style=solid];
+94334510715312->94334562244048  [color=white, dir=forward, fontcolor=white, label="5 row(s)/1 chunk(s)/1.089KB", penwidth=1, style=solid];
+}
