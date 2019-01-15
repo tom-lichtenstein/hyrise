@@ -1,0 +1,15 @@
+14
+SELECT 100.00 * SUM(case when p_type like 'PROMO%' then l_extendedprice*(1-l_discount) else 0 end)
+      / SUM(l_extendedprice * (1 - l_discount)) as promo_revenue FROM lineitem, part WHERE l_partkey = p_partkey
+      AND l_shipdate >= ? AND l_shipdate < ?;
+
+case 14 - 1: {
+      std::uniform_int_distribution<> date_diff_dist{0, 47};
+      const auto diff = date_diff_dist(random_engine);
+      const auto begin_date = calculate_date(boost::gregorian::date{1993, 01, 01}, diff);
+      const auto end_date = calculate_date(boost::gregorian::date{1993, 01, 01}, diff + 1);
+
+      parameters.emplace_back("'"s + begin_date + "'");
+      parameters.emplace_back("'"s + end_date + "'");
+      break;
+    }

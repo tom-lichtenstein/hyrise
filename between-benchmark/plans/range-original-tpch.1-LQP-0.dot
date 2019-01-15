@@ -1,0 +1,22 @@
+digraph G {
+bgcolor=black;
+rankdir=BT;
+ratio=compress;
+94378872420272 [color=white, fontcolor=white, label="Alias [SUM(l_extendedprice * l_discount) AS \nREVENUE] ", penwidth=1, shape=rectangle];
+94378019221808 [color=white, fontcolor=white, label="[Aggregate] GroupBy: [] Aggregates: \n[SUM(l_extendedprice * l_discount)] ", penwidth=1, shape=rectangle];
+94378075231600 [color=white, fontcolor=white, label="[Projection] l_extendedprice * l_discount", penwidth=1, shape=rectangle];
+94377838491472 [color=white, fontcolor=white, label="[Projection] l_quantity, l_extendedprice, \nl_discount, l_shipdate ", penwidth=1, shape=rectangle];
+94377610862144 [color=white, fontcolor=white, label="[Predicate] l_shipdate < '1995-01-01'", penwidth=1, shape=rectangle];
+94377610862000 [color=white, fontcolor=white, label="[Predicate] l_shipdate >= '1994-01-01'", penwidth=1, shape=rectangle];
+94377610860416 [color=white, fontcolor=white, label="[Predicate] l_quantity < 24", penwidth=1, shape=rectangle];
+94377610860272 [color=white, fontcolor=white, label="[Predicate] l_discount BETWEEN 0.05 AND 0.07001", penwidth=1, shape=rectangle];
+94377610739840 [color=white, fontcolor=white, label="[StoredTable] Name: 'lineitem'", penwidth=1, shape=rectangle];
+94378019221808->94378872420272  [color=white, dir=forward, fontcolor=white, label=" 563661.0 row(s) | 100.0% estd.", penwidth=3, style=solid];
+94378075231600->94378019221808  [color=white, dir=forward, fontcolor=white, label=" 563661.0 row(s) | 100.0% estd.", penwidth=3, style=solid];
+94377838491472->94378075231600  [color=white, dir=forward, fontcolor=white, label=" 563661.0 row(s) | 100.0% estd.", penwidth=3, style=solid];
+94377610862144->94377838491472  [color=white, dir=forward, fontcolor=white, label=" 563661.0 row(s) | 100.0% estd.", penwidth=3, style=solid];
+94377610862000->94377610862144  [color=white, dir=forward, fontcolor=white, label=" 563661.0 row(s) | 100.0% estd.", penwidth=3, style=solid];
+94377610860416->94377610862000  [color=white, dir=forward, fontcolor=white, label=" 563661.0 row(s) | 46.9% estd.", penwidth=3, style=solid];
+94377610860272->94377610860416  [color=white, dir=forward, fontcolor=white, label=" 1200843.0 row(s) | 20.0% estd.", penwidth=4, style=solid];
+94377610739840->94377610860272  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+}

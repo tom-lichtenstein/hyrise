@@ -1,0 +1,9 @@
+{
+  "visualize": true,
+  "verbose": false,
+  "queries": "like/like-original-tpch.sql",
+  "tables": "tables",
+  "encoding": "Unencoded",
+  "output": "like/results-unencoded-original.txt",
+  "time": 60
+}

@@ -1,0 +1,57 @@
+digraph G {
+bgcolor=black;
+rankdir=BT;
+ratio=compress;
+94378998317312 [color=white, fontcolor=white, label="Alias [revenue]
+
+0 ns", penwidth=1, shape=rectangle];
+94378072087088 [color=white, fontcolor=white, label="[Aggregate] GroupBy ColumnIDs:  Aggregates: \nSUM(Column #0)
+
+25 µs 0 ns ", penwidth=1, shape=rectangle];
+94379035768416 [color=white, fontcolor=white, label="Projection
+
+254 µs 0 ns", penwidth=2, shape=rectangle];
+94379036229680 [color=white, fontcolor=white, label="TableScan
+Impl: ExpressionEvaluator
+(((((p_size \nBETWEEN 1 AND 15 AND l_quantity <= 30) AND \nl_quantity >= 20) AND (p_container) IN ('LG \nCASE', 'LG BOX', 'LG PACK', 'LG PKG')) AND \np_brand = 'Brand#34') OR ((((p_size BETWEEN 1 AND \n5 AND l_quantity <= 11) AND l_quantity >= 1) AND \n(p_container) IN ('SM CASE', 'SM BOX', 'SM PACK', \n'SM PKG')) AND p_brand = 'Brand#12')) OR \n((((p_size BETWEEN 1 AND 10 AND l_quantity <= 20) \nAND l_quantity >= 10) AND (p_container) IN ('MED \nBAG', 'MED BOX', 'MED PKG', 'MED PACK')) AND \np_brand = 'Brand#23')
+
+57 ms 633 µs ", penwidth=3, shape=rectangle];
+94379002044976 [color=white, fontcolor=white, label="JoinHash
+(Inner Join where l_partkey = \np_partkey)
+
+20 ms 621 µs ", penwidth=3, shape=rectangle];
+94379003446096 [color=white, fontcolor=white, label="Projection
+
+41 µs 0 ns", penwidth=1, shape=rectangle];
+94378007805024 [color=white, fontcolor=white, label="TableScan
+Impl: ExpressionEvaluator
+(l_shipmode) \nIN ('AIR', 'AIR REG')
+
+49 ms 383 µs ", penwidth=3, shape=rectangle];
+94378007804800 [color=white, fontcolor=white, label="TableScan
+Impl: LiteralTableScan
+l_shipinstruct = \n'DELIVER IN PERSON'
+
+17 ms 377 µs ", penwidth=3, shape=rectangle];
+94379035877872 [color=white, fontcolor=white, label="GetTable
+(lineitem)
+
+0 ns", penwidth=1, shape=rectangle];
+94379002100832 [color=white, fontcolor=white, label="Projection
+
+101 µs 0 ns", penwidth=2, shape=rectangle];
+94379016627408 [color=white, fontcolor=white, label="GetTable
+(part)
+
+0 ns", penwidth=1, shape=rectangle];
+94378072087088->94378998317312  [color=white, dir=forward, fontcolor=white, label="1 row(s)/1 chunk(s)/456B", penwidth=1, style=solid];
+94379035768416->94378072087088  [color=white, dir=forward, fontcolor=white, label="121 row(s)/51 chunk(s)/15.726KB", penwidth=2, style=solid];
+94379036229680->94379035768416  [color=white, dir=forward, fontcolor=white, label="121 row(s)/51 chunk(s)/44.981KB", penwidth=2, style=solid];
+94379002044976->94379036229680  [color=white, dir=forward, fontcolor=white, label="214377 row(s)/64 chunk(s)/17.194MB", penwidth=3, style=solid];
+94379003446096->94379002044976  [color=white, dir=forward, fontcolor=white, label="214377 row(s)/61 chunk(s)/10.318MB", penwidth=3, style=solid];
+94378007805024->94379003446096  [color=white, dir=forward, fontcolor=white, label="214377 row(s)/61 chunk(s)/27.503MB", penwidth=3, style=solid];
+94378007804800->94378007805024  [color=white, dir=forward, fontcolor=white, label="1500048 row(s)/61 chunk(s)/192.068MB", penwidth=4, style=solid];
+94379035877872->94378007804800  [color=white, dir=forward, fontcolor=white, label="6001215 row(s)/61 chunk(s)/500.660MB", penwidth=4, style=solid];
+94379002100832->94379002044976  [color=white, dir=forward, fontcolor=white, label="200000 row(s)/2 chunk(s)/4.605MB", penwidth=3, style=solid];
+94379016627408->94379002100832  [color=white, dir=forward, fontcolor=white, label="200000 row(s)/2 chunk(s)/18.202MB", penwidth=3, style=solid];
+}

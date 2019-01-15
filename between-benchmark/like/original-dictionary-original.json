@@ -1,0 +1,9 @@
+{
+  "visualize": true,
+  "verbose": false,
+  "queries": "like/like-original-tpch.sql",
+  "tables": "tables",
+  "encoding": "Dictionary",
+  "output": "like/results-dictionary-original.txt",
+  "time": 60
+}

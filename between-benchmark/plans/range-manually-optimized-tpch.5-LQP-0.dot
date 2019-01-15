@@ -1,0 +1,26 @@
+digraph G {
+bgcolor=black;
+rankdir=BT;
+ratio=compress;
+94334832233152 [color=white, fontcolor=white, label="Alias [SUM(l_extendedprice * (1 - l_discount)) AS \nrevenue] ", penwidth=1, shape=rectangle];
+94334832204160 [color=white, fontcolor=white, label="[Aggregate] GroupBy: [] Aggregates: \n[SUM(l_extendedprice * (1 - l_discount))] ", penwidth=1, shape=rectangle];
+94334827895680 [color=white, fontcolor=white, label="[Projection] l_extendedprice * (1 - l_discount)", penwidth=1, shape=rectangle];
+94334829902736 [color=white, fontcolor=white, label="[Predicate] ((((p_size BETWEEN 1 AND 15 AND \nl_quantity BETWEEN 20 AND 30) AND (p_container) \nIN ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')) \nAND p_brand = 'Brand#34') OR (((p_size BETWEEN 1 \nAND 5 AND l_quantity BETWEEN 1 AND 11) AND \n(p_container) IN ('SM CASE', 'SM BOX', 'SM PACK', \n'SM PKG')) AND p_brand = 'Brand#12')) OR \n(((p_size BETWEEN 1 AND 10 AND l_quantity BETWEEN \n10 AND 20) AND (p_container) IN ('MED BAG', 'MED \nBOX', 'MED PKG', 'MED PACK')) AND p_brand = \n'Brand#23') ", penwidth=1, shape=rectangle];
+94335649167024 [color=white, fontcolor=white, label="[Join] Mode: Inner p_partkey = l_partkey", penwidth=1, shape=rectangle];
+94334794068224 [color=white, fontcolor=white, label="[Projection] l_partkey, l_quantity, \nl_extendedprice, l_discount, l_shipinstruct, \nl_shipmode ", penwidth=1, shape=rectangle];
+94334794068080 [color=white, fontcolor=white, label="[Predicate] (l_shipmode) IN ('AIR', 'AIR REG')", penwidth=1, shape=rectangle];
+94334794068400 [color=white, fontcolor=white, label="[Predicate] l_shipinstruct = 'DELIVER IN PERSON'", penwidth=1, shape=rectangle];
+94334772288208 [color=white, fontcolor=white, label="[StoredTable] Name: 'lineitem'", penwidth=1, shape=rectangle];
+94334728230016 [color=white, fontcolor=white, label="[Projection] p_partkey, p_brand, p_size, \np_container ", penwidth=1, shape=rectangle];
+94334760804288 [color=white, fontcolor=white, label="[StoredTable] Name: 'part'", penwidth=1, shape=rectangle];
+94334832204160->94334832233152  [color=white, dir=forward, fontcolor=white, label=" 1500303.6 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94334827895680->94334832204160  [color=white, dir=forward, fontcolor=white, label=" 1500303.6 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94334829902736->94334827895680  [color=white, dir=forward, fontcolor=white, label=" 1500303.6 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94335649167024->94334829902736  [color=white, dir=forward, fontcolor=white, label=" 1500303.6 row(s) | 0.0% estd.", penwidth=4, style=solid];
+94334794068224->94335649167024  [color=white, dir=forward, fontcolor=white, label=" 1500303.8 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94334794068080->94334794068224  [color=white, dir=forward, fontcolor=white, label=" 1500303.8 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94334794068400->94334794068080  [color=white, dir=forward, fontcolor=white, label=" 1500303.8 row(s) | 25.0% estd.", penwidth=4, style=solid];
+94334772288208->94334794068400  [color=white, dir=forward, fontcolor=white, label=" 6001215.0 row(s) | 100.0% estd.", penwidth=4, style=solid];
+94334728230016->94335649167024  [color=white, dir=forward, fontcolor=white, label=" 200000.0 row(s) | 100.0% estd.", penwidth=3, style=solid];
+94334760804288->94334728230016  [color=white, dir=forward, fontcolor=white, label=" 200000.0 row(s) | 100.0% estd.", penwidth=3, style=solid];
+}

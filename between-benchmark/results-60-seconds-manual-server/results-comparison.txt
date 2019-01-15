@@ -1,0 +1,30 @@
+../scripts/compare_benchmarks.py results-unencoded-original.txt results-unencoded-manually-optimized.txt
+
++---------------------------------+-----------------+------+-----------------+------+--------+---------------------------------+
+| Benchmark                       | prev. iter/s    | runs | new iter/s      | runs | change | p-value (significant if <0.001) |
++---------------------------------+-----------------+------+-----------------+------+--------+---------------------------------+
+| range-manually-optimized-tpch.0 | 2.61517453194   | 157  | 2.65082216263   | 160  | [32m+1%[0m    |                          [30m0.1061[0m |
+| range-manually-optimized-tpch.1 | 5.62013339996   | 338  | 6.5930557251    | 396  | [32m+17%[0m   |                          [32m0.0000[0m |
+| range-manually-optimized-tpch.2 | 1.26444768906   | 76   | 1.28925704956   | 78   | [32m+2%[0m    |     [30m(run time too short) 0.0813[0m |
+| range-manually-optimized-tpch.3 | 1.96220457554   | 118  | 1.57962596416   | 95   | [31m-19%[0m   |                          [32m0.0000[0m |
+| range-manually-optimized-tpch.4 | 3.69274330139   | 222  | 4.61080789566   | 277  | [32m+25%[0m   |                          [32m0.0000[0m |
+| range-manually-optimized-tpch.5 | 2.10496354103   | 127  | 2.06181049347   | 124  | [31m-2%[0m    |                          [30m0.0189[0m |
+| range-manually-optimized-tpch.6 | 0.0113813336939 | 1    | 0.0113820768893 | 1    | [32m+0%[0m    |           [30m(not enough runs) nan[0m |
+| average                         |                 |      |                 |      | [32m+3%[0m    |                                 |
++---------------------------------+-----------------+------+-----------------+------+--------+---------------------------------+
+
+../scripts/compare_benchmarks.py results-dictionary-original.txt results-dictionary-manually-optimized.txt
+
++---------------------------------+-----------------+------+----------------+------+--------+---------------------------------+
+| Benchmark                       | prev. iter/s    | runs | new iter/s     | runs | change | p-value (significant if <0.001) |
++---------------------------------+-----------------+------+----------------+------+--------+---------------------------------+
+| range-manually-optimized-tpch.0 | 2.87187957764   | 173  | 2.90154528618  | 175  | [32m+1%[0m    |                          [30m0.1697[0m |
+| range-manually-optimized-tpch.1 | 13.0816907883   | 785  | 14.9392166138  | 897  | [32m+14%[0m   |     [30m(run time too short) 0.0000[0m |
+| range-manually-optimized-tpch.2 | 1.60184776783   | 97   | 1.61787164211  | 98   | [32m+1%[0m    |     [30m(run time too short) 0.0052[0m |
+| range-manually-optimized-tpch.3 | 4.12556600571   | 248  | 1.65780198574  | 100  | [31m-60%[0m   |                          [32m0.0000[0m |
+| range-manually-optimized-tpch.4 | 8.45896625519   | 508  | 11.7875776291  | 708  | [32m+39%[0m   |                          [32m0.0000[0m |
+| range-manually-optimized-tpch.5 | 3.23888325691   | 195  | 3.2124402523   | 193  | [31m-1%[0m    |                          [32m0.0000[0m |
+| range-manually-optimized-tpch.6 | 0.0401553548872 | 3    | 0.040447499603 | 3    | [32m+1%[0m    |        [30m(not enough runs) 0.0013[0m |
+| average                         |                 |      |                |      | [31m-1%[0m    |                                 |
++---------------------------------+-----------------+------+----------------+------+--------+---------------------------------+
+
