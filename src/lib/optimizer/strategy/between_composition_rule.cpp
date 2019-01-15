@@ -73,8 +73,6 @@ void BetweenCompositionRule::apply_to(const std::shared_ptr<AbstractLQPNode>& no
 
   const auto left_boundary = get_boundary(left_operand);
   const auto right_boundary = get_boundary(right_operand);
-  std::cout << "Given node\n";
-  predicate_node->print();
   if (left_boundary.column_expression->as_column_name() == right_boundary.column_expression->as_column_name()) {
     if (left_boundary.upper_bound && right_boundary.lower_bound) {
       const auto between_node = PredicateNode::make(std::make_shared<BetweenExpression>(
@@ -84,11 +82,7 @@ void BetweenCompositionRule::apply_to(const std::shared_ptr<AbstractLQPNode>& no
       const auto between_node = PredicateNode::make(std::make_shared<BetweenExpression>(
           left_boundary.column_expression, left_boundary.value_expression, right_boundary.value_expression));
       lqp_replace_node(predicate_node, between_node);
-      std::cout << "Result\n";
-      node->print();
     }
-    std::cout << "Result\n";
-    node->print();
   }
   _apply_to_inputs(node);
   return;

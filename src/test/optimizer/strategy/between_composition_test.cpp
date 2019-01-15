@@ -33,54 +33,95 @@ namespace opossum {
 class BetweenCompositionTest : public StrategyBaseTest {
  protected:
   void SetUp() override {
-    auto& storage_manager = StorageManager::get();
-    storage_manager.add_table("compressed", load_table("src/test/tables/int_float2.tbl", 2u));
-    storage_manager.add_table("long_compressed", load_table("src/test/tables/25_ints_sorted.tbl", 25u));
-    storage_manager.add_table("run_length_compressed", load_table("src/test/tables/10_ints.tbl", 5u));
-    storage_manager.add_table("string_compressed", load_table("src/test/tables/string.tbl", 3u));
-    storage_manager.add_table("fixed_string_compressed", load_table("src/test/tables/string.tbl", 3u));
-
-    ChunkEncoder::encode_all_chunks(storage_manager.get_table("compressed"), EncodingType::Dictionary);
-    ChunkEncoder::encode_all_chunks(storage_manager.get_table("long_compressed"), EncodingType::Dictionary);
-    ChunkEncoder::encode_all_chunks(storage_manager.get_table("run_length_compressed"), EncodingType::RunLength);
-    ChunkEncoder::encode_all_chunks(storage_manager.get_table("string_compressed"), EncodingType::Dictionary);
-    ChunkEncoder::encode_all_chunks(storage_manager.get_table("fixed_string_compressed"),
-                                    EncodingType::FixedStringDictionary);
+    const auto table = load_table("resources/test_data/tbl/int_int_int.tbl");
+    StorageManager::get().add_table("a", table);
     _rule = std::make_shared<BetweenCompositionRule>();
 
-    storage_manager.add_table("uncompressed", load_table("src/test/tables/int_float2.tbl", 10u));
+    std::vector<std::shared_ptr<const BaseColumnStatistics>> column_statistics(
+        {std::make_shared<ColumnStatistics<int32_t>>(0.0f, 20, 10, 100),
+         std::make_shared<ColumnStatistics<int32_t>>(0.0f, 5, 50, 60),
+         std::make_shared<ColumnStatistics<int32_t>>(0.0f, 2, 110, 1100)});
+
+    auto table_statistics = std::make_shared<TableStatistics>(TableType::Data, 100, column_statistics);
+    // Assumes 50% deleted rows
+    table_statistics->increase_invalid_row_count(50);
+
+    node = StoredTableNode::make("a");
+    table->set_table_statistics(table_statistics);
+
+    a = LQPColumnReference{node, ColumnID{0}};
+    b = LQPColumnReference{node, ColumnID{1}};
+    c = LQPColumnReference{node, ColumnID{2}};
   }
 
+  std::shared_ptr<StoredTableNode> node;
+  LQPColumnReference a, b, c;
   std::shared_ptr<BetweenCompositionRule> _rule;
 };
 
 TEST_F(BetweenCompositionTest, DummyBetweenCompositionTest) {
-  auto stored_table_node = std::make_shared<StoredTableNode>("compressed");
+  const auto input_lqp = PredicateNode::make(
+    and_(
+      greater_than_equals_(a, 200),
+      less_than_equals_(b, 300)
+    ),
+    node);
 
-  auto root = std::make_shared<PredicateNode>(
-      and_(greater_than_equals_(LQPColumnReference(stored_table_node, ColumnID{0}), 200),
-           less_than_equals_(LQPColumnReference(stored_table_node, ColumnID{0}), 300)));
+  const auto expected_lqp = PredicateNode::make(
+    and_(
+      greater_than_equals_(a, 200),
+      less_than_equals_(b, 300)
+    ),
+    node);
 
-  auto composed = StrategyBaseTest::apply_rule(_rule, root);
-  EXPECT_EQ(composed, root);
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
 
 TEST_F(BetweenCompositionTest, ScanBetweenReplacementTest) {
-  auto stored_table_node = std::make_shared<StoredTableNode>("compressed");
+  const auto input_lqp = PredicateNode::make(
+    and_(
+      greater_than_equals_(a, 200),
+      less_than_equals_(a, 300)
+    ),
+    node);
 
-  const auto input_lqp = std::make_shared<PredicateNode>(
-      and_(greater_than_equals_(LQPColumnReference(stored_table_node, ColumnID{0}), 200),
-           less_than_equals_(LQPColumnReference(stored_table_node, ColumnID{0}), 300)));
+  const auto expected_lqp = PredicateNode::make(between_(a, 200, 300), node);
 
-  std::cout << "BetweenCompositionTest \n";
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
 
-  input_lqp->print();
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
+}
 
-  const auto expected_lqp =
-      std::make_shared<PredicateNode>(between_(LQPColumnReference(stored_table_node, ColumnID{0}), 200, 300));
+TEST_F(BetweenCompositionTest, ScanBetweenReplacementSwitchedTest) {
+  const auto input_lqp = PredicateNode::make(
+    and_(
+      less_than_equals_(a, 300),
+      greater_than_equals_(a, 200)
+    ),
+    node);
 
-  auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
-  EXPECT_EQ(result_lqp, expected_lqp);
+  const auto expected_lqp = PredicateNode::make(between_(a, 200, 300), node);
+
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
+}
+
+TEST_F(BetweenCompositionTest, ScanBetweenReplacementReverseTest) {
+  const auto input_lqp = PredicateNode::make(
+    and_(
+      less_than_equals_(200, a),
+      greater_than_equals_(300, a)
+    ),
+    node);
+
+  const auto expected_lqp = PredicateNode::make(between_(a, 200, 300), node);
+
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
 
 }  // namespace opossum
