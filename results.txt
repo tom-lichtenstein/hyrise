@@ -1,0 +1,8 @@
+(release)> generate_tpch 10
+(release)> SELECT COUNT(*) FROM lineitem GROUP BY l_suppkey LIMIT 10
+
+OLD:
+Execution info: [PARSE: 11 µs 387 ns, SQL TRANSLATE: 0 ns, OPTIMIZE: 0 ns, LQP TRANSLATE: 16 µs 47 ns, EXECUTE: 5 s 622 ms (wall time) | QUERY PLAN CACHE HITS: 1/1 statement(s)]
+
+NEW:
+Execution info: [PARSE: 8 µs 718 ns, SQL TRANSLATE: 0 ns, OPTIMIZE: 0 ns, LQP TRANSLATE: 14 µs 927 ns, EXECUTE: 7 s 745 ms (wall time) | QUERY PLAN CACHE HITS: 1/1 statement(s)]
