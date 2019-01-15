@@ -34,4 +34,3 @@ class BetweenCompositionRule : public AbstractRule {
 };
 
 }  // namespace opossum
-

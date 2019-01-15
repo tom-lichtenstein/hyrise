@@ -60,19 +60,9 @@ class BetweenCompositionTest : public StrategyBaseTest {
 };
 
 TEST_F(BetweenCompositionTest, DummyBetweenCompositionTest) {
-  const auto input_lqp = PredicateNode::make(
-    and_(
-      greater_than_equals_(a, 200),
-      less_than_equals_(b, 300)
-    ),
-    node);
+  const auto input_lqp = PredicateNode::make(and_(greater_than_equals_(a, 200), less_than_equals_(b, 300)), node);
 
-  const auto expected_lqp = PredicateNode::make(
-    and_(
-      greater_than_equals_(a, 200),
-      less_than_equals_(b, 300)
-    ),
-    node);
+  const auto expected_lqp = PredicateNode::make(and_(greater_than_equals_(a, 200), less_than_equals_(b, 300)), node);
 
   const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
 
@@ -80,12 +70,7 @@ TEST_F(BetweenCompositionTest, DummyBetweenCompositionTest) {
 }
 
 TEST_F(BetweenCompositionTest, ScanBetweenReplacementTest) {
-  const auto input_lqp = PredicateNode::make(
-    and_(
-      greater_than_equals_(a, 200),
-      less_than_equals_(a, 300)
-    ),
-    node);
+  const auto input_lqp = PredicateNode::make(and_(greater_than_equals_(a, 200), less_than_equals_(a, 300)), node);
 
   const auto expected_lqp = PredicateNode::make(between_(a, 200, 300), node);
 
@@ -95,12 +80,7 @@ TEST_F(BetweenCompositionTest, ScanBetweenReplacementTest) {
 }
 
 TEST_F(BetweenCompositionTest, ScanBetweenReplacementSwitchedTest) {
-  const auto input_lqp = PredicateNode::make(
-    and_(
-      less_than_equals_(a, 300),
-      greater_than_equals_(a, 200)
-    ),
-    node);
+  const auto input_lqp = PredicateNode::make(and_(less_than_equals_(a, 300), greater_than_equals_(a, 200)), node);
 
   const auto expected_lqp = PredicateNode::make(between_(a, 200, 300), node);
 
@@ -110,12 +90,7 @@ TEST_F(BetweenCompositionTest, ScanBetweenReplacementSwitchedTest) {
 }
 
 TEST_F(BetweenCompositionTest, ScanBetweenReplacementReverseTest) {
-  const auto input_lqp = PredicateNode::make(
-    and_(
-      less_than_equals_(200, a),
-      greater_than_equals_(300, a)
-    ),
-    node);
+  const auto input_lqp = PredicateNode::make(and_(less_than_equals_(200, a), greater_than_equals_(300, a)), node);
 
   const auto expected_lqp = PredicateNode::make(between_(a, 200, 300), node);
 
@@ -124,5 +99,46 @@ TEST_F(BetweenCompositionTest, ScanBetweenReplacementReverseTest) {
   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
 
-}  // namespace opossum
+// TEST_F(BetweenCompositionTest, ScanBetweenReplacementMultipleOccurencesTest) {
+//   const auto input_lqp = PredicateNode::make(
+//     and_(
+//       greater_than_equals_(a, 200),
+//       PredicateNode::make(
+//         and_(
+//         less_than_equals_(a, 300),
+//         PredicateNode::make(
+//           and_(
+//             greater_than_equals_(b, 200),
+//             less_than_equals_(b, 300)
+//           ),
+//           node)))));
 
+//   const auto expected_lqp = PredicateNode::make(
+//     and_(
+//       between_(a, 200, 300),
+//       between_(b, 200, 300)
+//     ),
+//     node);
+
+//   const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+//   EXPECT_LQP_EQ(result_lqp, expected_lqp);
+// }
+
+TEST_F(BetweenCompositionTest, ScanBetweenReplacementVariousLocations) {
+  const auto input_lqp = PredicateNode::make(
+      greater_than_equals_(a, 200),
+      PredicateNode::make(
+          less_than_equals_(b, 200),
+          PredicateNode::make(less_than_equals_(c, 200), PredicateNode::make(less_than_equals_(a, 300), node))));
+
+  const auto expected_lqp = PredicateNode::make(
+      less_than_equals_(b, 200),
+      PredicateNode::make(less_than_equals_(c, 200), PredicateNode::make(between_(a, 200, 300), node)));
+
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
+}
+
+}  // namespace opossum

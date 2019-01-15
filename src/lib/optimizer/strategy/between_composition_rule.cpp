@@ -50,7 +50,6 @@ ColumnBoundary get_boundary(const std::shared_ptr<BinaryPredicateExpression>& ex
 }
 
 void BetweenCompositionRule::apply_to(const std::shared_ptr<AbstractLQPNode>& node) const {
-
   if (node->type != LQPNodeType::Predicate) {
     _apply_to_inputs(node);
     return;
@@ -89,4 +88,3 @@ void BetweenCompositionRule::apply_to(const std::shared_ptr<AbstractLQPNode>& no
 }
 
 }  // namespace opossum
-
