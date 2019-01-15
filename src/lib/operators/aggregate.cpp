@@ -300,11 +300,7 @@ std::shared_ptr<const Table> Aggregate::_on_execute() {
     keys_per_chunk = KeysPerChunk{allocator};
     keys_per_chunk.reserve(input_table->chunk_count());
     for (ChunkID chunk_id{0}; chunk_id < input_table->chunk_count(); ++chunk_id) {
-      if constexpr (std::is_same_v<AggregateKey, pmr_vector<AggregateKeyEntry>>) {
-        keys_per_chunk.emplace_back(input_table->get_chunk(chunk_id)->size(), AggregateKey(_groupby_column_ids.size()));
-      } else {
-        keys_per_chunk.emplace_back(input_table->get_chunk(chunk_id)->size(), AggregateKey{});
-      }
+      keys_per_chunk.emplace_back(input_table->get_chunk(chunk_id)->size(), AggregateKey(_groupby_column_ids.size()));
     }
 
     // Make sure that we did not have to allocate more memory than originally computed
