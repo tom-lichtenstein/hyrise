@@ -59,7 +59,7 @@ class BetweenCompositionTest : public StrategyBaseTest {
   std::shared_ptr<BetweenCompositionRule> _rule;
 };
 
-TEST_F(BetweenCompositionTest, DummyBetweenCompositionTest) {
+/* TEST_F(BetweenCompositionTest, DummyBetweenCompositionTest) {
   const auto input_lqp = PredicateNode::make(and_(greater_than_equals_(a, 200), less_than_equals_(b, 300)), node);
 
   const auto expected_lqp = PredicateNode::make(and_(greater_than_equals_(a, 200), less_than_equals_(b, 300)), node);
@@ -124,13 +124,17 @@ TEST_F(BetweenCompositionTest, ScanBetweenReplacementReverseTest) {
 
 //   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 // }
-
+*/
 TEST_F(BetweenCompositionTest, ScanBetweenReplacementVariousLocations) {
   const auto input_lqp = PredicateNode::make(
       greater_than_equals_(a, 200),
       PredicateNode::make(
           less_than_equals_(b, 200),
-          PredicateNode::make(less_than_equals_(c, 200), PredicateNode::make(less_than_equals_(a, 300), node))));
+          PredicateNode::make(
+              greater_than_equals_(a, 230),
+              PredicateNode::make(less_than_equals_(c, 200),
+                                  PredicateNode::make(less_than_equals_(a, 250),
+                                                      PredicateNode::make(less_than_equals_(a, 300), node))))));
 
   const auto expected_lqp = PredicateNode::make(
       less_than_equals_(b, 200),

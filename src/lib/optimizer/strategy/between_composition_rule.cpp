@@ -23,6 +23,7 @@ namespace opossum {
 std::string BetweenCompositionRule::name() const { return "Between Composition Rule"; }
 
 ColumnBoundary get_boundary(const std::shared_ptr<BinaryPredicateExpression>& expression) {
+  // BUG: Can recognize: x <= 4, but can not recognize: 4 <= x
   const auto left_column_expression = std::static_pointer_cast<LQPColumnExpression>(expression->left_operand());
   const auto right_value_expression = std::static_pointer_cast<ValueExpression>(expression->right_operand());
 
@@ -49,8 +50,75 @@ ColumnBoundary get_boundary(const std::shared_ptr<BinaryPredicateExpression>& ex
   return {nullptr, nullptr, false, false};
 }
 
+std::vector<ColumnBoundary> get_column_boundaries(const std::shared_ptr<AbstractLQPNode>& node) {
+  if (node == nullptr) {
+    return std::vector<ColumnBoundary>();
+  }
+  std::cout << "node\n";
+
+  auto left_children = get_column_boundaries(node->left_input());
+  const auto right_children = get_column_boundaries(node->right_input());
+
+  left_children.insert(std::end(left_children), std::begin(right_children), std::end(right_children));
+
+  if (node->type == LQPNodeType::Predicate) {
+    const auto predicate_node = std::static_pointer_cast<PredicateNode>(node);
+    const auto expression = std::static_pointer_cast<BinaryPredicateExpression>(predicate_node->predicate());
+    if (expression != nullptr && (expression->predicate_condition == PredicateCondition::GreaterThanEquals ||
+                                  expression->predicate_condition == PredicateCondition::LessThanEquals)) {
+      const auto boundary = get_boundary(expression);
+      if (boundary.upper_bound || boundary.lower_bound) {
+        left_children.push_back(boundary);
+      }
+    }
+  }
+
+  return left_children;
+}
+
+bool column_boundary_comparator(ColumnBoundary a, ColumnBoundary b) {
+  return a.column_expression->as_column_name() < b.column_expression->as_column_name();
+}
+
+void replace_boundaries(std::vector<ColumnBoundary> boundaries) {
+  std::sort(boundaries.begin(), boundaries.end(), column_boundary_comparator);
+  std::shared_ptr<opossum::LQPColumnExpression> last_column_expression = nullptr;
+  std::shared_ptr<opossum::ValueExpression> lower_bound_value_expression = nullptr;
+  std::shared_ptr<opossum::ValueExpression> upper_bound_value_expression = nullptr;
+  for (ColumnBoundary boundary : boundaries) {
+    if (last_column_expression == nullptr ||
+        last_column_expression->as_column_name() != boundary.column_expression->as_column_name()) {
+      if (lower_bound_value_expression != nullptr && upper_bound_value_expression != nullptr) {
+        const auto between_node = PredicateNode::make(std::make_shared<BetweenExpression>(
+            last_column_expression, lower_bound_value_expression, upper_bound_value_expression));
+        between_node->print();
+        // TODO(tom): Delete predicate expressions and insert between node
+      }
+      upper_bound_value_expression = nullptr;
+      lower_bound_value_expression = nullptr;
+      last_column_expression = boundary.column_expression;
+    }
+
+    if (boundary.upper_bound && !boundary.lower_bound) {
+      if (upper_bound_value_expression == nullptr ||
+          upper_bound_value_expression->value > boundary.value_expression->value) {
+        upper_bound_value_expression = boundary.value_expression;
+      }
+    } else if (boundary.lower_bound && !boundary.upper_bound) {
+      if (lower_bound_value_expression == nullptr ||
+          lower_bound_value_expression->value < boundary.value_expression->value) {
+        lower_bound_value_expression = boundary.value_expression;
+      }
+    }
+  }
+}
+
 void BetweenCompositionRule::apply_to(const std::shared_ptr<AbstractLQPNode>& node) const {
-  if (node->type != LQPNodeType::Predicate) {
+  const auto boundaries = get_column_boundaries(node);
+  std::cout << "Filtered for binary predicate expressions\n";
+  replace_boundaries(boundaries);
+
+  /*if (node->type != LQPNodeType::Predicate) {
     _apply_to_inputs(node);
     return;
   }
@@ -85,6 +153,7 @@ void BetweenCompositionRule::apply_to(const std::shared_ptr<AbstractLQPNode>& no
   }
   _apply_to_inputs(node);
   return;
+  */
 }
 
 }  // namespace opossum
