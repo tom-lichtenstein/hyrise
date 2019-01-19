@@ -57,7 +57,7 @@ void ColumnBetweenTableScanImpl::_scan_generic_segment(const BaseSegment& segmen
 
     auto typed_left_value = type_cast_variant<ColumnDataType>(_left_value);
     auto typed_right_value = type_cast_variant<ColumnDataType>(_right_value);
-    
+
     if (_left_inclusive) {
       if (_right_inclusive) {
         auto comparator = [typed_left_value, typed_right_value](const auto& position) {
@@ -89,8 +89,24 @@ void ColumnBetweenTableScanImpl::_scan_generic_segment(const BaseSegment& segmen
 void ColumnBetweenTableScanImpl::_scan_dictionary_segment(const BaseDictionarySegment& segment, const ChunkID chunk_id,
                                                           PosList& matches,
                                                           const std::shared_ptr<const PosList>& position_filter) const {
-  const auto left_value_id = segment.lower_bound(_left_value);
-  const auto right_value_id = segment.upper_bound(_right_value);
+  ValueID left_value_id;
+  if (_left_inclusive) {
+    left_value_id = segment.lower_bound(_left_value);
+  } else {
+    left_value_id = segment.upper_bound(_left_value);
+  }
+
+  ValueID right_value_id;
+  if (_right_inclusive) {
+    right_value_id = segment.upper_bound(_right_value);
+  } else {
+    right_value_id = segment.lower_bound(_right_value);
+  }
+
+  if (left_value_id == INVALID_VALUE_ID || left_value_id == right_value_id || left_value_id >= right_value_id) {
+    // no values match
+    return;
+  }
 
   auto column_iterable = create_iterable_from_attribute_vector(segment);
 
@@ -102,11 +118,6 @@ void ColumnBetweenTableScanImpl::_scan_dictionary_segment(const BaseDictionarySe
       _scan_with_iterators<false>(always_true, left_it, left_end, chunk_id, matches);
     });
 
-    return;
-  }
-
-  if (left_value_id == INVALID_VALUE_ID || left_value_id == right_value_id) {
-    // no values match
     return;
   }
 
