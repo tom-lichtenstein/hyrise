@@ -10,8 +10,7 @@ class BetweenExpression : public AbstractPredicateExpression {
  public:
   BetweenExpression(const std::shared_ptr<AbstractExpression>& value,
                     const std::shared_ptr<AbstractExpression>& lower_bound,
-                    const std::shared_ptr<AbstractExpression>& upper_bound,
-                    bool left_inclusive = true,
+                    const std::shared_ptr<AbstractExpression>& upper_bound, bool left_inclusive = true,
                     bool right_inclusive = true);
 
   const std::shared_ptr<AbstractExpression>& value() const;

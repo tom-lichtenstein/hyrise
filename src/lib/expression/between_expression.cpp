@@ -8,11 +8,11 @@ namespace opossum {
 
 BetweenExpression::BetweenExpression(const std::shared_ptr<AbstractExpression>& value,
                                      const std::shared_ptr<AbstractExpression>& lower_bound,
-                                     const std::shared_ptr<AbstractExpression>& upper_bound,
-                                     bool left_inclusive, bool right_inclusive)
+                                     const std::shared_ptr<AbstractExpression>& upper_bound, bool left_inclusive,
+                                     bool right_inclusive)
     : AbstractPredicateExpression(PredicateCondition::Between, {value, lower_bound, upper_bound}),
-    _left_inclusive{left_inclusive},
-    _right_inclusive{right_inclusive} {}
+      _left_inclusive{left_inclusive},
+      _right_inclusive{right_inclusive} {}
 
 const std::shared_ptr<AbstractExpression>& BetweenExpression::value() const { return arguments[0]; }
 
