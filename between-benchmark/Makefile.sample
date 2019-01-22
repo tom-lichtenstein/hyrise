@@ -17,7 +17,7 @@ COMP := ../scripts/compare_benchmarks.py --ignore-naming
 .PHONY: like-unencoded-optimized like-unencoded-original
 .PHONY: like-dictionary-optimized like-dictionary-original
 
-.PHONY:	sort-plans-unencoded sort-plans-dictionary
+.PHONY:	sort-plans-unencoded-between sort-plans-unencoded-like sort-plans-dictionary-between sort-plans-dictionary-like
 
 .PHONY: prepare-comparison
 .PHONY:	compare
@@ -25,9 +25,9 @@ COMP := ../scripts/compare_benchmarks.py --ignore-naming
 
 benchmark:  between-benchmark like-benchmark
 
-between-benchmark: between-unencoded-optimized between-unencoded-original sort-plans-unencoded between-dictionary-optimized between-dictionary-original sort-plans-dictionary
+between-benchmark: between-unencoded-optimized between-unencoded-original sort-plans-unencoded-between between-dictionary-optimized between-dictionary-original sort-plans-dictionary-between
 
-like-benchmark: like-unencoded-optimized like-unencoded-original sort-plans-unencoded like-dictionary-optimized like-dictionary-original sort-plans-dictionary
+like-benchmark: like-unencoded-optimized like-unencoded-original sort-plans-unencoded-like like-dictionary-optimized like-dictionary-original sort-plans-dictionary-like
 
 
 prepare: prepare-visualization prepare-comparison
@@ -59,19 +59,23 @@ like-dictionary-optimized:
 like-dictionary-original:
 	${BIN} like/original-dictionary-original.json
 
-sort-plans-unencoded:
+sort-plans-unencoded-between:
 	mkdir -p plans/between/unencoded
-	mkdir -p plans/like/unencoded
 	-rm $(wildcard range-*.dot)
 	-mv $(wildcard range-*.svg) plans/between/unencoded/
+
+sort-plans-unencoded-like:
+	mkdir -p plans/like/unencoded
 	-rm $(wildcard like-*.dot)
 	-mv $(wildcard like-*.svg) plans/like/unencoded/
 
-sort-plans-dictionary:
+sort-plans-dictionary-between:
 	mkdir -p plans/between/dictionary
-	mkdir -p plans/like/dictionary
 	-rm $(wildcard range-*.dot)
 	-mv $(wildcard range-*.svg) plans/between/dictionary/
+
+sort-plans-dictionary-like:
+	mkdir -p plans/like/dictionary
 	-rm $(wildcard like-*.dot)
 	-mv $(wildcard like-*.svg) plans/like/dictionary/
 

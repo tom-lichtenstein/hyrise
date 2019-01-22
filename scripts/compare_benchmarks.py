@@ -36,7 +36,7 @@ def calculate_and_format_p_value(old, new):
 	return colored(notes + "{0:.4f}".format(p_value), color)
 
 def print_usage():
-	print("Usage: " + sys.argv[0] + " benchmark1.json benchmark2.json")
+	print("Usage: " + sys.argv[0] + " [--ignore-naming]" + " benchmark1.json benchmark2.json")
 	exit()
 
 if len(sys.argv) < 3 or len(sys.argv) > 4:

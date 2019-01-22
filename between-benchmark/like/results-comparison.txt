@@ -1,0 +1,20 @@
+make: Entering directory '/home/Mirko.Krause/hyrise-tom/between-benchmark'
+../scripts/compare_benchmarks.py --ignore-naming like/results-unencoded-original.txt like/results-unencoded-manually-optimized.txt
+
++----------------------------------------------------+---------------+------+---------------+------+--------+---------------------------------+
+| Benchmark                                          | prev. iter/s  | runs | new iter/s    | runs | change | p-value (significant if <0.001) |
++----------------------------------------------------+---------------+------+---------------+------+--------+---------------------------------+
+| like-original-tpch -> like-manually-optimized-tpch | 4.19262742996 | 252  | 4.42261266708 | 266  | [32m+5%[0m    |     [30m(run time too short) 0.0000[0m |
+| average                                            |               |      |               |      | [32m+5%[0m    |                                 |
++----------------------------------------------------+---------------+------+---------------+------+--------+---------------------------------+
+
+../scripts/compare_benchmarks.py --ignore-naming like/results-dictionary-original.txt like/results-dictionary-manually-optimized.txt
+
++----------------------------------------------------+---------------+------+--------------+------+--------+---------------------------------+
+| Benchmark                                          | prev. iter/s  | runs | new iter/s   | runs | change | p-value (significant if <0.001) |
++----------------------------------------------------+---------------+------+--------------+------+--------+---------------------------------+
+| like-original-tpch -> like-manually-optimized-tpch | 11.5778493881 | 695  | 12.099196434 | 726  | [32m+5%[0m    |     [30m(run time too short) 0.0000[0m |
+| average                                            |               |      |              |      | [32m+5%[0m    |                                 |
++----------------------------------------------------+---------------+------+--------------+------+--------+---------------------------------+
+
+make: Leaving directory '/home/Mirko.Krause/hyrise-tom/between-benchmark'
