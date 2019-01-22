@@ -250,7 +250,7 @@ SELECT * FROM id_int_int_int_100 t1 WHERE (SELECT MIN(t2.id + 10) FROM id_int_in
 ---- SELECT * FROM mixed_null WHERE b = NULL;
 ---- SELECT * FROM mixed_null WHERE b > NULL;
 ---- SELECT * FROM mixed_null WHERE b < NULL;
----- SELECT * FROM mixed_null WHERE b <> NULL;          
+---- SELECT * FROM mixed_null WHERE b <> NULL;
 ---- SELECT * FROM mixed_null WHERE b BETWEEN NULL AND NULL;
 
 -- CASE
@@ -290,6 +290,13 @@ SELECT * FROM mixed WHERE NOT EXISTS (SELECT id_int_int_int_100.a FROM id_int_in
 SELECT * FROM mixed_null WHERE EXISTS(SELECT 0) OR b = 42;
 SELECT * FROM mixed_null WHERE EXISTS(SELECT 1);
 SELECT * FROM mixed_null WHERE NOT EXISTS(SELECT * FROM mixed WHERE b > 1000);
+
+-- Between optimization
+SELECT * FROM id_int_int_int_100 WHERE a >= 20 AND a <= 90;
+SELECT * FROM id_int_int_int_100 WHERE a > 20 AND a <= 91;
+SELECT * FROM id_int_int_int_100 WHERE a >= 20 AND a < 91;
+SELECT * FROM id_int_int_int_100 WHERE a > 20 AND a < 91;
+SELECT * FROM id_int_int_int_100 WHERE a >= 20 AND a <= 40 OR b >= 50 AND b <= 95;
 
 -- Cannot test the following expressions, because sqlite doesn't support them:
 --  * EXTRACT
