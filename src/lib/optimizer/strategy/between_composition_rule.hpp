@@ -17,6 +17,7 @@ class ChunkStatistics;
 class PredicateNode;
 
 struct ColumnBoundary {
+  std::shared_ptr<PredicateNode> node;
   std::shared_ptr<LQPColumnExpression> column_expression;
   std::shared_ptr<ValueExpression> value_expression;
   bool upper_bound;
@@ -31,6 +32,8 @@ class BetweenCompositionRule : public AbstractRule {
  public:
   std::string name() const override;
   void apply_to(const std::shared_ptr<AbstractLQPNode>& node) const override;
+ private:
+  void _replace_predicates(std::vector<std::shared_ptr<AbstractLQPNode>>& predicates) const;
 };
 
 }  // namespace opossum

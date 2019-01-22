@@ -134,11 +134,13 @@ TEST_F(BetweenCompositionTest, ScanBetweenReplacementVariousLocations) {
               greater_than_equals_(a, 230),
               PredicateNode::make(less_than_equals_(c, 200),
                                   PredicateNode::make(less_than_equals_(a, 250),
-                                                      PredicateNode::make(less_than_equals_(a, 300), node))))));
+                                                      PredicateNode::make(less_than_equals_(a, 300),
+                                                      PredicateNode::make(greater_than_equals_(b, 150)),node))))));
 
   const auto expected_lqp = PredicateNode::make(
-      less_than_equals_(b, 200),
-      PredicateNode::make(less_than_equals_(c, 200), PredicateNode::make(between_(a, 200, 300), node)));
+      between_(a, 230, 250), PredicateNode::make(
+        between_(b, 150, 200), PredicateNode::make(
+          less_than_equals_(c, 200), node)));
 
   const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
 
