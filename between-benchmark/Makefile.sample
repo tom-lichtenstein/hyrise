@@ -1,0 +1,92 @@
+# example command to run from project root:
+# make -C between-benchmark/ -f Makefile.sample benchmark
+
+CMAKEDIR := cmake-build-release
+
+BIN := ../${CMAKEDIR}/hyriseBenchmarkFileBased
+COMP := ../scripts/compare_benchmarks.py --ignore-naming
+
+.PHONY: benchmark prepare compare
+
+.PHONY: prepare-visualization
+
+.PHONY: between-benchmark like-benchmark
+.PHONY: between-unencoded-optimized between-unencoded-original
+.PHONY: between-dictionary-optimized between-dictionary-original
+
+.PHONY: like-unencoded-optimized like-unencoded-original
+.PHONY: like-dictionary-optimized like-dictionary-original
+
+.PHONY:	sort-plans-unencoded sort-plans-dictionary
+
+.PHONY: prepare-comparison
+.PHONY:	compare
+.PHONY:	compare-between compare-like
+
+benchmark:  between-benchmark like-benchmark
+
+between-benchmark: between-unencoded-optimized between-unencoded-original sort-plans-unencoded between-dictionary-optimized between-dictionary-original sort-plans-dictionary
+
+like-benchmark: like-unencoded-optimized like-unencoded-original sort-plans-unencoded like-dictionary-optimized like-dictionary-original sort-plans-dictionary
+
+
+prepare: prepare-visualization prepare-comparison
+
+prepare-visualization:
+	-apt install graphviz
+
+between-unencoded-optimized:
+	${BIN} between/original-unencoded-optimized.json
+
+between-unencoded-original:
+	${BIN} between/original-unencoded-original.json
+
+between-dictionary-optimized:
+	${BIN} between/original-dictionary-optimized.json
+
+between-dictionary-original:
+	${BIN} between/original-dictionary-original.json
+
+like-unencoded-optimized:
+	${BIN} like/original-unencoded-optimized.json
+
+like-unencoded-original:
+	${BIN} like/original-unencoded-original.json
+
+like-dictionary-optimized:
+	${BIN} like/original-dictionary-optimized.json
+
+like-dictionary-original:
+	${BIN} like/original-dictionary-original.json
+
+sort-plans-unencoded:
+	mkdir -p plans/between/unencoded
+	mkdir -p plans/like/unencoded
+	-rm $(wildcard range-*.dot)
+	-mv $(wildcard range-*.svg) plans/between/unencoded/
+	-rm $(wildcard like-*.dot)
+	-mv $(wildcard like-*.svg) plans/like/unencoded/
+
+sort-plans-dictionary:
+	mkdir -p plans/between/dictionary
+	mkdir -p plans/like/dictionary
+	-rm $(wildcard range-*.dot)
+	-mv $(wildcard range-*.svg) plans/between/dictionary/
+	-rm $(wildcard like-*.dot)
+	-mv $(wildcard like-*.svg) plans/like/dictionary/
+
+prepare-comparison:
+	chmod +x ${COMP}
+	pip install terminaltables
+	pip install termcolor
+	@echo disable the benchmark name equality checking in ${COMP}
+
+compare:    compare-between compare-like
+
+compare-between:
+	${COMP} between/results-unencoded-original.txt between/results-unencoded-manually-optimized.txt
+	${COMP} between/results-dictionary-original.txt between/results-dictionary-manually-optimized.txt
+
+compare-like:
+	${COMP} like/results-unencoded-original.txt like/results-unencoded-manually-optimized.txt
+	${COMP} like/results-dictionary-original.txt like/results-dictionary-manually-optimized.txt
