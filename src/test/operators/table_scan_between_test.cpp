@@ -26,7 +26,7 @@ class TableScanBetweenTest : public TypedOperatorBaseTest {
     // ...
     // 30.25         10
     //
-    // As the first column is type casted, it contains 10 for an int column, the string "10.25" for a string column etc.
+    // As the first column is TYPE CASTED, it contains 10 for an int column, the string "10.25" for a string column etc.
     // We chose .25 because that can be exactly expressed in a float.
 
     const auto& [data_type, encoding, nullable] = GetParam();
@@ -96,43 +96,19 @@ class TableScanBetweenTest : public TypedOperatorBaseTest {
 };
 
 TEST_P(TableScanBetweenTest, ExactBoundaries) {
+  // BEWARE: The data values (see above) are type casted, latest when they get dictionary compressed.
+  // The same happens to the boundary values, that is why, for convenience, some boundaries were
+  // pushed up/down to the next leading int.
+
   auto inclusive_tests = std::vector<std::tuple<AllTypeVariant, AllTypeVariant, std::vector<int>>>{
-      {12.25, 16.25, {1, 2, 3}},                 // Both boundaries exact match
-      {12.0, 16.25, {1, 2, 3}},                  // Left boundary open match
-      {12.25, 16.75, {1, 2, 3}},                 // Right boundary open match
-      {12.0, 16.75, {1, 2, 3}},                  // Both boundaries open match
-      {0.0, 16.75, {0, 1, 2, 3}},                // Left boundary before first value
-      {16.0, 50.75, {3, 4, 5, 6, 7, 8, 9, 10}},  // Right boundary after last value
-      /*
-      TODO!!!!!!!!!!!
-      [ RUN      ] TableScanBetweenTestInstances/TableScanBetweenTest.ExactBoundaries/longDictionaryNotNullable
-/home/Mirko.Krause/hyrise-tom/src/test/operators/table_scan_between_test.cpp:91: Failure
-Expected equality of these values:
-  result_ints
-    Which is: { 1, 2, 3 }
-  expected
-    Which is: { 2, 3 }
-Google Test trace:
-/home/Mirko.Krause/hyrise-tom/src/test/operators/table_scan_between_test.cpp:68: BETWEEN 12.500000 (inclusive) AND 16.250000 (inclusive)
-/home/Mirko.Krause/hyrise-tom/src/test/operators/table_scan_between_test.cpp:91: Failure
-Expected equality of these values:
-  result_ints
-    Which is: { 1, 2 }
-  expected
-    Which is: { 1, 2, 3 }
-Google Test trace:
-/home/Mirko.Krause/hyrise-tom/src/test/operators/table_scan_between_test.cpp:68: BETWEEN 12.250000 (inclusive) AND 16.500000 (exclusive)
-/home/Mirko.Krause/hyrise-tom/src/test/operators/table_scan_between_test.cpp:91: Failure
-Expected equality of these values:
-  result_ints
-    Which is: { 1, 2, 3 }
-  expected
-    Which is: { 1, 2 }
-Google Test trace:
-/home/Mirko.Krause/hyrise-tom/src/test/operators/table_scan_between_test.cpp:68: BETWEEN 12.250000 (inclusive) AND 16.000000 (inclusive)
-*/
-      {12.5, 16.25, {2, 3}},                              // Left boundary after first value
-      {12.25, 16.0, {1, 2}},                              // Right boundary before last value
+      {12.25, 16.25, {1, 2, 3}},                          // Both boundaries exact match
+      {12.0, 16.25, {1, 2, 3}},                           // Left boundary open match
+      {12.25, 16.75, {1, 2, 3}},                          // Right boundary open match
+      {12.0, 16.75, {1, 2, 3}},                           // Both boundaries open match
+      {0.0, 16.75, {0, 1, 2, 3}},                         // Left boundary before first value
+      {16.0, 50.75, {3, 4, 5, 6, 7, 8, 9, 10}},           // Right boundary after last value
+      {13.0, 16.25, {2, 3}},                              // Left boundary after first value
+      {12.25, 15.0, {1, 2}},                              // Right boundary before last value
       {0.25, 50.75, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},  // Matching all values
       {0.25, 0.75, {}},                                   // Matching no value
   };
@@ -140,24 +116,32 @@ Google Test trace:
   _test_between_boundaries(inclusive_tests, true, true);
 
   auto left_exclusive_tests = std::vector<std::tuple<AllTypeVariant, AllTypeVariant, std::vector<int>>>{
-      {12.0, 16.25, {1, 2, 3}},  // Left boundary open match
+      {11.0, 16.25, {1, 2, 3}},  // Left boundary open match
       {12.25, 16.25, {2, 3}},    // Both boundaries exact match
-      {12.5, 16.75, {2, 3}},     // Left boundary inner value
+      {13.0, 16.25, {2, 3}},     // Left boundary inner value
   };
 
   _test_between_boundaries(left_exclusive_tests, false, true);
 
   auto right_exclusive_tests = std::vector<std::tuple<AllTypeVariant, AllTypeVariant, std::vector<int>>>{
-      {12.25, 16.0, {1, 2}},      // Right boundary inner value
-      {12.25, 16.25, {1, 2}},     // Both boundaries exact match
-      {12.25, 16.5, {1, 2, 3}},   // Right boundary open match
-      {12.25, 16.75, {1, 2, 3}},  // Right boundary open match
-      {12.25, 16.8, {1, 2, 3}},   // Right boundary open match
-      {12.25, 16.99, {1, 2, 3}},  // Right boundary open match
-      {12.25, 17.0, {1, 2, 3}},   // Right boundary open match
+      {12.25, 17.0, {1, 2, 3}},  // Right boundary open match
+      {12.25, 16.25, {1, 2}},    // Both boundaries exact match
+      {12.25, 15.0, {1, 2}},     // Right boundary inner value
   };
 
   _test_between_boundaries(right_exclusive_tests, true, false);
+
+  auto exclusive_tests = std::vector<std::tuple<AllTypeVariant, AllTypeVariant, std::vector<int>>>{
+      {12.25, 16.25, {2}},      // Both boundaries exact match
+      {11.0, 16.25, {1, 2}},    // Left boundary open match
+      {12.25, 17.0, {2, 3}},    // Right boundary open match
+      {11.0, 17.0, {1, 2, 3}},  // Both boundaries open match
+      {13.0, 16.25, {2}},       // Left boundary inner value
+      {12.25, 15.0, {2}},       // Right boundary inner value
+      {13.0, 15.0, {2}},        // Both boundaries inner value
+  };
+
+  _test_between_boundaries(exclusive_tests, false, false);
 }
 
 INSTANTIATE_TEST_CASE_P(TableScanBetweenTestInstances, TableScanBetweenTest, testing::ValuesIn(create_test_params()),
