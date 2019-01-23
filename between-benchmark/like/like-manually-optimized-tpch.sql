@@ -1,1 +1,1 @@
-SELECT 100.00 * SUM(case when p_type >= 'PROMO' then l_extendedprice*(1-l_discount) else 0 end) / SUM(l_extendedprice * (1 - l_discount)) as promo_revenue FROM lineitem, part WHERE l_partkey = p_partkey AND l_shipdate >= '1994-04-20' AND l_shipdate < '1994-05-20';
+SELECT 100.00 * SUM(case when p_type >= 'PROMO' and p_type < 'PROMP' then l_extendedprice*(1-l_discount) else 0 end) / SUM(l_extendedprice * (1 - l_discount)) as promo_revenue FROM lineitem, part WHERE l_partkey = p_partkey AND l_shipdate >= '1994-04-20' AND l_shipdate < '1994-05-20';
