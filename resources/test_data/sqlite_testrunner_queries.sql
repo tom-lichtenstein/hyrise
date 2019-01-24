@@ -296,7 +296,14 @@ SELECT * FROM id_int_int_int_100 WHERE a >= 20 AND a <= 90;
 SELECT * FROM id_int_int_int_100 WHERE a > 20 AND a <= 91;
 SELECT * FROM id_int_int_int_100 WHERE a >= 20 AND a < 91;
 SELECT * FROM id_int_int_int_100 WHERE a > 20 AND a < 91;
+
+SELECT * FROM id_int_int_int_100 WHERE 90 >= a AND 20 <= a;
+SELECT * FROM id_int_int_int_100 WHERE 91 > a AND 20 <= a;
+SELECT * FROM id_int_int_int_100 WHERE 91 >= a AND 20 < a;
+SELECT * FROM id_int_int_int_100 WHERE 91 > a AND 20 < a;
+
 SELECT * FROM id_int_int_int_100 WHERE a >= 20 AND a <= 40 OR b >= 50 AND b <= 95;
+SELECT * FROM id_int_int_int_100 WHERE a >= 20 AND a <= 40 AND c <= 35 AND b >= 49 AND a >= 21 AND b <= 95 AND c <= 40 AND c >= 23;
 
 -- Cannot test the following expressions, because sqlite doesn't support them:
 --  * EXTRACT
