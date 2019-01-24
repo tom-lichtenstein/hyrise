@@ -21,8 +21,8 @@ std::string BetweenCompositionRule::name() const { return "Between Composition R
 
 ColumnBoundary get_boundary(const std::shared_ptr<BinaryPredicateExpression>& expression,
                             const std::shared_ptr<PredicateNode>& node) {
-  const auto left_column_expression = std::static_pointer_cast<LQPColumnExpression>(expression->left_operand());
-  const auto right_value_expression = std::static_pointer_cast<ValueExpression>(expression->right_operand());
+  const auto left_column_expression = std::dynamic_pointer_cast<LQPColumnExpression>(expression->left_operand());
+  const auto right_value_expression = std::dynamic_pointer_cast<ValueExpression>(expression->right_operand());
 
   // Check is invalid because you can cast a LQPColumnExpression to a ValueExpression and the other way round.
   if (left_column_expression != nullptr && right_value_expression != nullptr) {
@@ -35,8 +35,8 @@ ColumnBoundary get_boundary(const std::shared_ptr<BinaryPredicateExpression>& ex
     };
   }
 
-  const auto left_value_expression = std::static_pointer_cast<ValueExpression>(expression->left_operand());
-  const auto right_column_expression = std::static_pointer_cast<LQPColumnExpression>(expression->right_operand());
+  const auto left_value_expression = std::dynamic_pointer_cast<ValueExpression>(expression->left_operand());
+  const auto right_column_expression = std::dynamic_pointer_cast<LQPColumnExpression>(expression->right_operand());
 
   if (left_value_expression != nullptr && right_column_expression != nullptr) {
     return {
@@ -67,8 +67,8 @@ void BetweenCompositionRule::_replace_predicates(std::vector<std::shared_ptr<Abs
 
   // Untie predicates from LQP, so we can freely retie them
   for (auto& predicate : predicates) {
-    const auto predicate_node = std::static_pointer_cast<PredicateNode>(predicate);
-    const auto expression = std::static_pointer_cast<BinaryPredicateExpression>(predicate_node->predicate());
+    const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(predicate);
+    const auto expression = std::dynamic_pointer_cast<BinaryPredicateExpression>(predicate_node->predicate());
     if (expression != nullptr && (expression->predicate_condition == PredicateCondition::GreaterThanEquals ||
                                   expression->predicate_condition == PredicateCondition::LessThanEquals)) {
       auto boundary = get_boundary(expression, predicate_node);
