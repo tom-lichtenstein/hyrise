@@ -60,9 +60,15 @@ class LikeCompositionTest : public StrategyBaseTest {
 };
 
 TEST_F(LikeCompositionTest, LikeCompositionTest) {
-  const auto input_lqp = PredicateNode::make(like_(a, "RED%"));
+  const auto input_lqp = PredicateNode::make(like_(a, "RED%"), node);
 
-  const auto expected_lqp = PredicateNode::make(and_(greater_than_equals_(a, "RED"), less_than_(b, "REE")), node);
+  // clang-format off
+  const auto expected_lqp = PredicateNode::make(
+    greater_than_equals_(a, "RED"),
+    PredicateNode::make(
+      less_than_(b, "REE"),
+      node));
+  // clang-format on
 
   const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
 
