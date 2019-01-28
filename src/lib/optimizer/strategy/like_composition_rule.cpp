@@ -37,7 +37,8 @@ void LikeCompositionRule::apply_to(const std::shared_ptr<AbstractLQPNode>& node)
           // Calculate lower and upper bound of the string
           const auto lower_bound = value.substr(0, offset);
           try {
-            const auto next_character = char(int(lower_bound.at(lower_bound.length() - 1)) + 1);
+            const auto next_character =
+                static_cast<char>(static_cast<int>(lower_bound.at(lower_bound.length() - 1)) + 1);
             const auto upper_bound = lower_bound.substr(0, offset - 1) + next_character;
             const auto lower_bound_node = PredicateNode::make(
                 std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, column_expression,
