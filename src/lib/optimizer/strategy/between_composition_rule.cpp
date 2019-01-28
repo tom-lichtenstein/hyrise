@@ -23,15 +23,20 @@ ColumnBoundary get_boundary(const std::shared_ptr<BinaryPredicateExpression>& ex
                             const std::shared_ptr<PredicateNode>& node) {
   const auto left_column_expression = std::dynamic_pointer_cast<LQPColumnExpression>(expression->left_operand());
   const auto right_value_expression = std::dynamic_pointer_cast<ValueExpression>(expression->right_operand());
+  auto type = ColumnBoundaryType::None;
 
   // Check is invalid because you can cast a LQPColumnExpression to a ValueExpression and the other way round.
   if (left_column_expression != nullptr && right_value_expression != nullptr) {
+    if (expression->predicate_condition == PredicateCondition::LessThanEquals) {
+      type = ColumnBoundaryType::UpperBoundaryInclusive;
+    } else if (expression->predicate_condition == PredicateCondition::GreaterThanEquals) {
+      type = ColumnBoundaryType::LowerBoundaryInclusive;
+    }
     return {
         node,
         left_column_expression,
         right_value_expression,
-        expression->predicate_condition == PredicateCondition::LessThanEquals,
-        expression->predicate_condition == PredicateCondition::GreaterThanEquals,
+        type,
     };
   }
 
@@ -39,16 +44,20 @@ ColumnBoundary get_boundary(const std::shared_ptr<BinaryPredicateExpression>& ex
   const auto right_column_expression = std::dynamic_pointer_cast<LQPColumnExpression>(expression->right_operand());
 
   if (left_value_expression != nullptr && right_column_expression != nullptr) {
+    if (expression->predicate_condition == PredicateCondition::GreaterThanEquals) {
+      type = ColumnBoundaryType::UpperBoundaryInclusive;
+    } else if (expression->predicate_condition == PredicateCondition::LessThanEquals) {
+      type = ColumnBoundaryType::LowerBoundaryInclusive;
+    }
     return {
         node,
         right_column_expression,
         left_value_expression,
-        expression->predicate_condition == PredicateCondition::GreaterThanEquals,
-        expression->predicate_condition == PredicateCondition::LessThanEquals,
+        type,
     };
   }
 
-  return {nullptr, nullptr, nullptr, false, false};
+  return {nullptr, nullptr, nullptr, type};
 }
 
 bool column_boundary_comparator(ColumnBoundary a, ColumnBoundary b) {
@@ -72,7 +81,7 @@ void BetweenCompositionRule::_replace_predicates(std::vector<std::shared_ptr<Abs
     if (expression != nullptr && (expression->predicate_condition == PredicateCondition::GreaterThanEquals ||
                                   expression->predicate_condition == PredicateCondition::LessThanEquals)) {
       auto boundary = get_boundary(expression, predicate_node);
-      if (boundary.upper_bound || boundary.lower_bound) {
+      if (boundary.type != ColumnBoundaryType::None) {
         boundaries.push_back(boundary);
       } else {
         predicate_nodes.push_back(predicate);
@@ -106,13 +115,13 @@ void BetweenCompositionRule::_replace_predicates(std::vector<std::shared_ptr<Abs
       last_column_expression = boundary.column_expression;
     }
 
-    if (boundary.upper_bound && !boundary.lower_bound) {
+    if (boundary.type == ColumnBoundaryType::UpperBoundaryInclusive) {
       if (upper_bound_value_expression == nullptr ||
           upper_bound_value_expression->value > boundary.value_expression->value) {
         upper_bound_value_expression = boundary.value_expression;
         node_scope.push_back(boundary.node);
       }
-    } else if (boundary.lower_bound && !boundary.upper_bound) {
+    } else if (boundary.type == ColumnBoundaryType::LowerBoundaryInclusive) {
       if (lower_bound_value_expression == nullptr ||
           lower_bound_value_expression->value < boundary.value_expression->value) {
         lower_bound_value_expression = boundary.value_expression;

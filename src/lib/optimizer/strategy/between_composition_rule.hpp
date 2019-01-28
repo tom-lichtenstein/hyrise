@@ -16,12 +16,19 @@ class AbstractLQPNode;
 class ChunkStatistics;
 class PredicateNode;
 
+enum ColumnBoundaryType {
+  None,
+  LowerBoundaryInclusive,
+  LowerBoundaryExclusive,
+  UpperBoundaryInclusive,
+  UpperBoundaryExclusive,
+};
+
 struct ColumnBoundary {
   std::shared_ptr<PredicateNode> node;
   std::shared_ptr<LQPColumnExpression> column_expression;
   std::shared_ptr<ValueExpression> value_expression;
-  bool upper_bound;
-  bool lower_bound;
+  ColumnBoundaryType type;
 };
 /**
  * This rule determines which chunks can be excluded from table scans based on
