@@ -64,9 +64,9 @@ TEST_F(LikeCompositionTest, LikeCompositionTest) {
 
   // clang-format off
   const auto expected_lqp = PredicateNode::make(
-    greater_than_equals_(a, "RED"),
+    less_than_(a, "REE"),
     PredicateNode::make(
-      less_than_(b, "REE"),
+      greater_than_equals_(a, "RED"),
       node));
   // clang-format on
 

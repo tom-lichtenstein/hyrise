@@ -36,30 +36,32 @@ void LikeCompositionRule::apply_to(const std::shared_ptr<AbstractLQPNode>& node)
         if (offset != std::string::npos && offset > 0 && value.length() == offset + 1) {
           // Calculate lower and upper bound of the string
           const auto lower_bound = value.substr(0, offset);
-          auto last_character = lower_bound.at(lower_bound.length() - 1);
-          //TODO(all): Find next character for upper bound
-          const auto upper_bound = lower_bound.substr(0, offset - 1) + last_character;
+          try {
+            const auto next_character = char(int(lower_bound.at(lower_bound.length() - 1)) + 1);
+            const auto upper_bound = lower_bound.substr(0, offset - 1) + next_character;
+            const auto lower_bound_node = PredicateNode::make(
+                std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, column_expression,
+                                                            std::make_shared<ValueExpression>(lower_bound)));
+            const auto upper_bound_node = PredicateNode::make(std::make_shared<BinaryPredicateExpression>(
+                PredicateCondition::LessThan, column_expression, std::make_shared<ValueExpression>(upper_bound)));
 
-          const auto lower_bound_node = PredicateNode::make(
-              std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, column_expression,
-                                                          std::make_shared<ValueExpression>(lower_bound)));
-          const auto upper_bound_node = PredicateNode::make(std::make_shared<BinaryPredicateExpression>(
-              PredicateCondition::LessThan, column_expression, std::make_shared<ValueExpression>(upper_bound)));
+            // Replace like node with boundary nodes
 
-          // Replace like node with boundary nodes
+            // Store the input and outputs of the node
+            auto input = predicate_node->left_input();
+            const auto outputs = predicate_node->outputs();
+            const auto input_sides = predicate_node->get_input_sides();
 
-          // Store the input and outputs of the node
-          auto input = predicate_node->left_input();
-          const auto outputs = predicate_node->outputs();
-          const auto input_sides = predicate_node->get_input_sides();
+            lqp_remove_node(predicate_node);
 
-          lqp_remove_node(predicate_node);
-
-          // Connect the boundary nodes with the input and outputs of the replaced like node
-          lower_bound_node->set_left_input(input);
-          upper_bound_node->set_left_input(lower_bound_node);
-          for (size_t output_idx = 0; output_idx < outputs.size(); ++output_idx) {
-            outputs[output_idx]->set_input(input_sides[output_idx], upper_bound_node);
+            // Connect the boundary nodes with the input and outputs of the replaced like node
+            lower_bound_node->set_left_input(input);
+            upper_bound_node->set_left_input(lower_bound_node);
+            for (size_t output_idx = 0; output_idx < outputs.size(); ++output_idx) {
+              outputs[output_idx]->set_input(input_sides[output_idx], upper_bound_node);
+            }
+          } catch (const std::exception& e) {
+            std::cout << "EXCEPTION";
           }
         }
       }
