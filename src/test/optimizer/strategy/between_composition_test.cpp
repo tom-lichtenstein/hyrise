@@ -138,23 +138,42 @@ TEST_F(BetweenCompositionTest, ScanBetweenReplacementVariousLocations) {
             less_than_equals_(c, 200),
             PredicateNode::make(
               less_than_equals_(a, 250),
-              PredicateNode::make(
-                less_than_(a, 250),
                 PredicateNode::make(
                   less_than_equals_(a, 300),
                   PredicateNode::make(
                     greater_than_equals_(b, 150),
-                    node))))))));
+                    node)))))));
 
   const auto expected_lqp = PredicateNode::make(
-      less_than_(a, 250),
-      PredicateNode::make(
         less_than_equals_(c, 200),
         PredicateNode::make(
           between_(a, 230, 250),
           PredicateNode::make(
             between_(b, 150, 200),
-            node))));
+            node)));
+  // clang-format on
+
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
+}
+
+TEST_F(BetweenCompositionTest, ExclusivePredicates) {
+  // clang-format off
+  const auto input_lqp = PredicateNode::make(
+      greater_than_(a, 200),
+      PredicateNode::make(
+        less_than_(a, 300),
+          node));
+
+  const auto expected_lqp = PredicateNode::make(
+      std::make_shared<BetweenExpression>(
+        a.original_node()->column_expressions()[0],
+        value_(200),
+        value_(300),
+        false,
+        false),
+      node);
   // clang-format on
 
   const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
