@@ -112,13 +112,9 @@ void BetweenCompositionRule::_replace_predicates(std::vector<std::shared_ptr<Abs
     if (last_column_expression == nullptr ||
         last_column_expression->as_column_name() != boundary.column_expression->as_column_name()) {
       if (lower_bound_value_expression != nullptr && upper_bound_value_expression != nullptr) {
-
-        const auto between_node = PredicateNode::make(std::make_shared<BetweenExpression>(
-            last_column_expression,
-            lower_bound_value_expression,
-            upper_bound_value_expression,
-            left_inclusive,
-            right_inclusive));
+        const auto between_node = PredicateNode::make(
+            std::make_shared<BetweenExpression>(last_column_expression, lower_bound_value_expression,
+                                                upper_bound_value_expression, left_inclusive, right_inclusive));
         between_nodes.push_back(between_node);
       } else {
         predicate_nodes.insert(std::end(predicate_nodes), std::begin(node_scope), std::end(node_scope));
@@ -163,8 +159,9 @@ void BetweenCompositionRule::_replace_predicates(std::vector<std::shared_ptr<Abs
   }
 
   if (lower_bound_value_expression != nullptr && upper_bound_value_expression != nullptr) {
-    const auto between_node = PredicateNode::make(std::make_shared<BetweenExpression>(
-        last_column_expression, lower_bound_value_expression, upper_bound_value_expression));
+    const auto between_node = PredicateNode::make(
+        std::make_shared<BetweenExpression>(last_column_expression, lower_bound_value_expression,
+                                            upper_bound_value_expression, left_inclusive, right_inclusive));
     between_nodes.push_back(between_node);
   } else {
     predicate_nodes.insert(std::end(predicate_nodes), std::begin(node_scope), std::end(node_scope));

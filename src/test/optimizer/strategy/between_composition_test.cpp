@@ -158,7 +158,6 @@ TEST_F(BetweenCompositionTest, ScanBetweenReplacementVariousLocations) {
   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
 
-
 TEST_F(BetweenCompositionTest, ExclusivePredicates) {
   // clang-format off
   const auto input_lqp = PredicateNode::make(
@@ -173,8 +172,7 @@ TEST_F(BetweenCompositionTest, ExclusivePredicates) {
         value_(200),
         value_(300),
         false,
-        false
-      ),
+        false),
       node);
   // clang-format on
 
