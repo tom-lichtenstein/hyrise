@@ -91,7 +91,6 @@ TEST_F(BetweenCompositionTest, ColumnExpressionRight) {
   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
 
-
 TEST_F(BetweenCompositionTest, LeftExclusive) {
   // clang-format off
   const auto input_lqp = PredicateNode::make(
@@ -114,7 +113,6 @@ TEST_F(BetweenCompositionTest, LeftExclusive) {
 
   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
-
 
 TEST_F(BetweenCompositionTest, RightExclusive) {
   // clang-format off
@@ -139,7 +137,6 @@ TEST_F(BetweenCompositionTest, RightExclusive) {
   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
 
-
 TEST_F(BetweenCompositionTest, BothExclusive) {
   // clang-format off
   const auto input_lqp = PredicateNode::make(
@@ -162,7 +159,6 @@ TEST_F(BetweenCompositionTest, BothExclusive) {
 
   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
-
 
 TEST_F(BetweenCompositionTest, OptimalBetween) {
   // clang-format off
