@@ -36,18 +36,7 @@ class BetweenCompositionTest : public StrategyBaseTest {
     const auto table = load_table("resources/test_data/tbl/int_int_int.tbl");
     StorageManager::get().add_table("a", table);
     _rule = std::make_shared<BetweenCompositionRule>();
-
-    std::vector<std::shared_ptr<const BaseColumnStatistics>> column_statistics(
-        {std::make_shared<ColumnStatistics<int32_t>>(0.0f, 20, 10, 100),
-         std::make_shared<ColumnStatistics<int32_t>>(0.0f, 5, 50, 60),
-         std::make_shared<ColumnStatistics<int32_t>>(0.0f, 2, 110, 1100)});
-
-    auto table_statistics = std::make_shared<TableStatistics>(TableType::Data, 100, column_statistics);
-    // Assumes 50% deleted rows
-    table_statistics->increase_invalid_row_count(50);
-
     node = StoredTableNode::make("a");
-    table->set_table_statistics(table_statistics);
 
     a = LQPColumnReference{node, ColumnID{0}};
     b = LQPColumnReference{node, ColumnID{1}};
