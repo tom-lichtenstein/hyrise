@@ -36,18 +36,7 @@ class BetweenCompositionTest : public StrategyBaseTest {
     const auto table = load_table("resources/test_data/tbl/int_int_int.tbl");
     StorageManager::get().add_table("a", table);
     _rule = std::make_shared<BetweenCompositionRule>();
-
-    std::vector<std::shared_ptr<const BaseColumnStatistics>> column_statistics(
-        {std::make_shared<ColumnStatistics<int32_t>>(0.0f, 20, 10, 100),
-         std::make_shared<ColumnStatistics<int32_t>>(0.0f, 5, 50, 60),
-         std::make_shared<ColumnStatistics<int32_t>>(0.0f, 2, 110, 1100)});
-
-    auto table_statistics = std::make_shared<TableStatistics>(TableType::Data, 100, column_statistics);
-    // Assumes 50% deleted rows
-    table_statistics->increase_invalid_row_count(50);
-
     node = StoredTableNode::make("a");
-    table->set_table_statistics(table_statistics);
 
     a = LQPColumnReference{node, ColumnID{0}};
     b = LQPColumnReference{node, ColumnID{1}};
@@ -59,74 +48,150 @@ class BetweenCompositionTest : public StrategyBaseTest {
   std::shared_ptr<BetweenCompositionRule> _rule;
 };
 
-/* TEST_F(BetweenCompositionTest, DummyBetweenCompositionTest) {
-  const auto input_lqp = PredicateNode::make(and_(greater_than_equals_(a, 200), less_than_equals_(b, 300)), node);
-
-  const auto expected_lqp = PredicateNode::make(and_(greater_than_equals_(a, 200), less_than_equals_(b, 300)), node);
-
-  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
-
-  EXPECT_LQP_EQ(result_lqp, expected_lqp);
-}
-
-TEST_F(BetweenCompositionTest, ScanBetweenReplacementTest) {
-  const auto input_lqp = PredicateNode::make(and_(greater_than_equals_(a, 200), less_than_equals_(a, 300)), node);
+TEST_F(BetweenCompositionTest, ColumnExpressionLeft) {
+  // clang-format off
+  const auto input_lqp = PredicateNode::make(
+      greater_than_equals_(a, 200),
+      PredicateNode::make(
+        less_than_equals_(a, 300),
+          node));
 
   const auto expected_lqp = PredicateNode::make(between_(a, 200, 300), node);
+  // clang-format on
 
   const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
 
   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
 
-TEST_F(BetweenCompositionTest, ScanBetweenReplacementSwitchedTest) {
-  const auto input_lqp = PredicateNode::make(and_(less_than_equals_(a, 300), greater_than_equals_(a, 200)), node);
+TEST_F(BetweenCompositionTest, ColumnExpressionRight) {
+  // clang-format off
+  const auto input_lqp = PredicateNode::make(
+      less_than_equals_(200, a),
+      PredicateNode::make(
+        greater_than_equals_(300, a),
+          node));
 
   const auto expected_lqp = PredicateNode::make(between_(a, 200, 300), node);
+  // clang-format on
 
   const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
 
   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
 
-TEST_F(BetweenCompositionTest, ScanBetweenReplacementReverseTest) {
-  const auto input_lqp = PredicateNode::make(and_(less_than_equals_(200, a), greater_than_equals_(300, a)), node);
+TEST_F(BetweenCompositionTest, LeftExclusive) {
+  // clang-format off
+  const auto input_lqp = PredicateNode::make(
+      greater_than_(a, 200),
+      PredicateNode::make(
+        less_than_equals_(a, 300),
+          node));
+
+  const auto expected_lqp = PredicateNode::make(
+      std::make_shared<BetweenExpression>(
+        a.original_node()->column_expressions()[0],
+        value_(200),
+        value_(300),
+        false,
+        true),
+      node);
+  // clang-format on
+
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
+}
+
+TEST_F(BetweenCompositionTest, RightExclusive) {
+  // clang-format off
+  const auto input_lqp = PredicateNode::make(
+      greater_than_equals_(a, 200),
+      PredicateNode::make(
+        less_than_(a, 300),
+          node));
+
+  const auto expected_lqp = PredicateNode::make(
+      std::make_shared<BetweenExpression>(
+        a.original_node()->column_expressions()[0],
+        value_(200),
+        value_(300),
+        true,
+        false),
+      node);
+  // clang-format on
+
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
+}
+
+TEST_F(BetweenCompositionTest, BothExclusive) {
+  // clang-format off
+  const auto input_lqp = PredicateNode::make(
+      greater_than_(a, 200),
+      PredicateNode::make(
+        less_than_(a, 300),
+          node));
+
+  const auto expected_lqp = PredicateNode::make(
+      std::make_shared<BetweenExpression>(
+        a.original_node()->column_expressions()[0],
+        value_(200),
+        value_(300),
+        false,
+        false),
+      node);
+  // clang-format on
+
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
+}
+
+TEST_F(BetweenCompositionTest, OptimalBetween) {
+  // clang-format off
+  const auto input_lqp = PredicateNode::make(
+      greater_than_equals_(a, 100),
+      PredicateNode::make(
+        greater_than_equals_(a, 200),
+        PredicateNode::make(
+          less_than_equals_(a, 400),
+          PredicateNode::make(
+            less_than_equals_(a, 300),
+            node))));
 
   const auto expected_lqp = PredicateNode::make(between_(a, 200, 300), node);
+  // clang-format on
 
   const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
 
   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
 
-// TEST_F(BetweenCompositionTest, ScanBetweenReplacementMultipleOccurencesTest) {
-//   const auto input_lqp = PredicateNode::make(
-//     and_(
-//       greater_than_equals_(a, 200),
-//       PredicateNode::make(
-//         and_(
-//         less_than_equals_(a, 300),
-//         PredicateNode::make(
-//           and_(
-//             greater_than_equals_(b, 200),
-//             less_than_equals_(b, 300)
-//           ),
-//           node)))));
+TEST_F(BetweenCompositionTest, RemainingPredicates) {
+  // clang-format off
+  const auto input_lqp = PredicateNode::make(
+        greater_than_equals_(a, 200),
+        PredicateNode::make(
+          less_than_equals_(a, 300),
+          PredicateNode::make(
+          less_than_equals_(b, 300),
+            node)));
 
-//   const auto expected_lqp = PredicateNode::make(
-//     and_(
-//       between_(a, 200, 300),
-//       between_(b, 200, 300)
-//     ),
-//     node);
+  const auto expected_lqp = PredicateNode::make(
+    less_than_equals_(b, 300),
+    PredicateNode::make(
+      between_(a, 200, 300),
+      node));
+  // clang-format on
 
-//   const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
 
-//   EXPECT_LQP_EQ(result_lqp, expected_lqp);
-// }
-*/
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
+}
 
-TEST_F(BetweenCompositionTest, ScanBetweenReplacementVariousLocations) {
+TEST_F(BetweenCompositionTest, MultipleBetweensVariousLocations) {
   // clang-format off
   const auto input_lqp = PredicateNode::make(
       greater_than_equals_(a, 200),
@@ -157,47 +222,5 @@ TEST_F(BetweenCompositionTest, ScanBetweenReplacementVariousLocations) {
 
   EXPECT_LQP_EQ(result_lqp, expected_lqp);
 }
-
-TEST_F(BetweenCompositionTest, ExclusivePredicates) {
-  // clang-format off
-  const auto input_lqp = PredicateNode::make(
-      greater_than_(a, 200),
-      PredicateNode::make(
-        less_than_(a, 300),
-          node));
-
-  const auto expected_lqp = PredicateNode::make(
-      std::make_shared<BetweenExpression>(
-        a.original_node()->column_expressions()[0],
-        value_(200),
-        value_(300),
-        false,
-        false),
-      node);
-  // clang-format on
-
-  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
-
-  EXPECT_LQP_EQ(result_lqp, expected_lqp);
-}
-
-/*
-
-TEST_F(BetweenCompositionTest, SwitchColumnAndValueExpression) {
-  const auto input_lqp = PredicateNode::make(
-      greater_than_equals_(a, 200),
-      PredicateNode::make(
-        greater_than_equals_(250, a),
-        node));
-
-  const auto expected_lqp = PredicateNode::make(
-      between_(a, 200, 250), node);
-
-  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
-
-  EXPECT_LQP_EQ(result_lqp, expected_lqp);
-}
-
-*/
 
 }  // namespace opossum

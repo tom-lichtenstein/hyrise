@@ -131,9 +131,8 @@ BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20Like)(benchmark::State& sta
   auto& sm = StorageManager::get();
   auto part_table = sm.get_table("part");
   auto operand = pqp_column_(ColumnID{1}, part_table->column_data_type(ColumnID{1}),
-                                     part_table->column_is_nullable(ColumnID{1}), "");
-  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like,
-                                                                 operand, value_("m%"));
+                             part_table->column_is_nullable(ColumnID{1}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("m%"));
 
   static bool first = true;
   
@@ -151,7 +150,7 @@ BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20LikeRewritten)(benchmark::S
   auto& sm = StorageManager::get();
   auto part_table = sm.get_table("part");
   auto operand = pqp_column_(ColumnID{1}, part_table->column_data_type(ColumnID{1}),
-                                     part_table->column_is_nullable(ColumnID{1}), "");
+                             part_table->column_is_nullable(ColumnID{1}), "");
   auto predicate = std::make_shared<BetweenExpression>(operand, value_("m"), value_("n"), true, false);
 
   static bool first = true;
@@ -188,9 +187,11 @@ BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20LikeNarrow)(benchmark::Stat
 BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20LikeRewrittenNarrow)(benchmark::State& state) {
   auto& sm = StorageManager::get();
   auto part_table = sm.get_table("part");
+
   auto operand = pqp_column_(ColumnID{1}, part_table->column_data_type(ColumnID{1}),
-                                     part_table->column_is_nullable(ColumnID{1}), "");
+                             part_table->column_is_nullable(ColumnID{1}), "");
   auto predicate = std::make_shared<BetweenExpression>(operand, value_("mm"), value_("mn"), true, false);
+
   static bool first = true;
   
   for (auto _ : state) {
@@ -208,26 +209,27 @@ BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20Between)(benchmark::State& 
   auto part_table = sm.get_table("part");
 
   auto operand = pqp_column_(ColumnID{1}, part_table->column_data_type(ColumnID{1}),
-                                     part_table->column_is_nullable(ColumnID{1}), "");
+                             part_table->column_is_nullable(ColumnID{1}), "");
 
-  auto first_predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals,
-                                                                 operand, value_("a"));
-  auto second_predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThanEquals,
-                                                                 operand, value_("z"));
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("A"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThanEquals, operand, value_("z"));
+  
   static bool first = true;
   
   for (auto _ : state) {
     const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("part"), first_predicate);
     const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
-    
+
     first_table_scan->execute();
     second_table_scan->execute();
 
     if (first) {
       std::cout << _table_wrapper_map.at("part")->get_output()->row_count() << std::endl;
       std::cout << first_table_scan->get_output()->row_count() << std::endl;
-      std::cout << second_table_scan->get_output()->row_count() << std::endl;     
-       first = false;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
     }
   }
 }
@@ -474,11 +476,13 @@ BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20BetweenLastRewritten)(bench
   auto operand = pqp_column_(ColumnID{1}, part_table->column_data_type(ColumnID{1}),
                                      part_table->column_is_nullable(ColumnID{1}), "");
   auto predicate = std::make_shared<BetweenExpression>(operand, value_("z"), value_("{"), true, false);
+
   static bool first = true;
+
   for (auto _ : state) {
     const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("part"), predicate);
     table_scan->execute();
-    
+
     if (first) {
       std::cout << table_scan->get_output()->row_count() << std::endl;
       first = false;
