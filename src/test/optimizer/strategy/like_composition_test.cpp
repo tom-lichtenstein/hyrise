@@ -33,33 +33,19 @@ namespace opossum {
 class LikeCompositionTest : public StrategyBaseTest {
  protected:
   void SetUp() override {
-    const auto table = load_table("resources/test_data/tbl/int_int_int.tbl");
+    const auto table = load_table("resources/test_data/tbl/string_like_pruning.tbl");
     StorageManager::get().add_table("a", table);
     _rule = std::make_shared<LikeCompositionRule>();
-
-    std::vector<std::shared_ptr<const BaseColumnStatistics>> column_statistics(
-        {std::make_shared<ColumnStatistics<int32_t>>(0.0f, 20, 10, 100),
-         std::make_shared<ColumnStatistics<int32_t>>(0.0f, 5, 50, 60),
-         std::make_shared<ColumnStatistics<int32_t>>(0.0f, 2, 110, 1100)});
-
-    auto table_statistics = std::make_shared<TableStatistics>(TableType::Data, 100, column_statistics);
-    // Assumes 50% deleted rows
-    table_statistics->increase_invalid_row_count(50);
-
     node = StoredTableNode::make("a");
-    table->set_table_statistics(table_statistics);
-
     a = LQPColumnReference{node, ColumnID{0}};
-    b = LQPColumnReference{node, ColumnID{1}};
-    c = LQPColumnReference{node, ColumnID{2}};
   }
 
   std::shared_ptr<StoredTableNode> node;
-  LQPColumnReference a, b, c;
+  LQPColumnReference a;
   std::shared_ptr<LikeCompositionRule> _rule;
 };
 
-TEST_F(LikeCompositionTest, LikeCompositionTest) {
+TEST_F(LikeCompositionTest, LikeComposition) {
   const auto input_lqp = PredicateNode::make(like_(a, "RED%"), node);
 
   // clang-format off
@@ -69,6 +55,26 @@ TEST_F(LikeCompositionTest, LikeCompositionTest) {
       greater_than_equals_(a, "RED"),
       node));
   // clang-format on
+
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
+}
+
+TEST_F(LikeCompositionTest, DoubleWildcard) {
+  const auto input_lqp = PredicateNode::make(like_(a, "RED%E%"), node);
+
+  const auto expected_lqp = PredicateNode::make(like_(a, "RED%E%"), node);
+
+  const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
+
+  EXPECT_LQP_EQ(result_lqp, expected_lqp);
+}
+
+TEST_F(LikeCompositionTest, NoWildcard) {
+  const auto input_lqp = PredicateNode::make(like_(a, "RED"), node);
+
+  const auto expected_lqp = PredicateNode::make(like_(a, "RED"), node);
 
   const auto result_lqp = StrategyBaseTest::apply_rule(_rule, input_lqp);
 
