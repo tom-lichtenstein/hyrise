@@ -1,0 +1,83 @@
+Generating TPC-H data set with scale factor 1 and Dictionary encoding:
+- Loading/Generating tables 
+- Loading/Generating tables done (14 s 30 ms)
+- Encoding tables if necessary
+-  Encoding 'nation' - encoding applied (580 µs 486 ns)
+-  Encoding 'orders' - encoding applied (1 s 13 ms)
+-  Encoding 'region' - encoding applied (293 µs 720 ns)
+-  Encoding 'part' - encoding applied (493 ms 425 µs)
+-  Encoding 'lineitem' - encoding applied (3 s 142 ms)
+-  Encoding 'partsupp' - encoding applied (766 ms 925 µs)
+-  Encoding 'customer' - encoding applied (447 ms 577 µs)
+-  Encoding 'supplier' - encoding applied (29 ms 491 µs)
+- Encoding tables done (5 s 895 ms)
+- Adding Tables to StorageManager and generating statistics 
+-  Adding 'nation' (956 µs 811 ns)
+-  Adding 'orders' (2 s 455 ms)
+-  Adding 'region' (37 µs 823 ns)
+-  Adding 'part' (223 ms 477 µs)
+-  Adding 'lineitem' (9 s 988 ms)
+-  Adding 'partsupp' (1 s 671 ms)
+-  Adding 'customer' (278 ms 997 µs)
+-  Adding 'supplier' (15 ms 209 µs)
+- Adding Tables to StorageManager and generating statistics done (14 s 634 ms)
+17490
+--------------------------------------------------------------------------------------------------------------
+Benchmark                                                                       Time           CPU Iterations
+--------------------------------------------------------------------------------------------------------------
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20Like_mean                      [m[0;33m   6176160 ns    6175980 ns [m[0;36m       212[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20Like_median                    [m[0;33m   3361412 ns    3361387 ns [m[0;36m       212[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20Like_stddev                    [m[0;33m   5131399 ns    5131187 ns [m[0;36m       212[m
+[m17490
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20LikeRewritten_mean             [m[0;33m    353327 ns     353318 ns [m[0;36m      1991[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20LikeRewritten_median           [m[0;33m    352379 ns     352371 ns [m[0;36m      1991[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20LikeRewritten_stddev           [m[0;33m      5497 ns       5496 ns [m[0;36m      1991[m
+[m0
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20LikeNarrow_mean                [m[0;33m   3649372 ns    3649263 ns [m[0;36m       210[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20LikeNarrow_median              [m[0;33m   3696582 ns    3696497 ns [m[0;36m       210[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20LikeNarrow_stddev              [m[0;33m    132363 ns     132366 ns [m[0;36m       210[m
+[m0
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20LikeRewrittenNarrow_mean       [m[0;33m      4301 ns       4301 ns [m[0;36m    160112[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20LikeRewrittenNarrow_median     [m[0;33m      4289 ns       4289 ns [m[0;36m    160112[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20LikeRewrittenNarrow_stddev     [m[0;33m        97 ns         97 ns [m[0;36m    160112[m
+[m200000
+200000
+200000
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20Between_mean                   [m[0;33m   1805296 ns    1805237 ns [m[0;36m       458[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20Between_median                 [m[0;33m   1567646 ns    1567608 ns [m[0;36m       458[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20Between_stddev                 [m[0;33m    301965 ns     301945 ns [m[0;36m       458[m
+[m200000
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenRewritten_mean          [m[0;33m    728842 ns     728822 ns [m[0;36m       873[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenRewritten_median        [m[0;33m    784096 ns     784068 ns [m[0;36m       873[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenRewritten_stddev        [m[0;33m     79338 ns      79331 ns [m[0;36m       873[m
+[m200000
+200000
+0
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenHalf_mean               [m[0;33m    622799 ns     622786 ns [m[0;36m      1120[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenHalf_median             [m[0;33m    621261 ns     621255 ns [m[0;36m      1120[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenHalf_stddev             [m[0;33m     10951 ns      10950 ns [m[0;36m      1120[m
+[m0
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenHalfRewritten_mean      [m[0;33m      4201 ns       4201 ns [m[0;36m    166318[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenHalfRewritten_median    [m[0;33m      4189 ns       4189 ns [m[0;36m    166318[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenHalfRewritten_stddev    [m[0;33m        90 ns         90 ns [m[0;36m    166318[m
+[m200000
+98300
+98300
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenQuarter_mean            [m[0;33m   1474418 ns    1474381 ns [m[0;36m       478[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenQuarter_median          [m[0;33m   1470254 ns    1470215 ns [m[0;36m       478[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenQuarter_stddev          [m[0;33m     28433 ns      28430 ns [m[0;36m       478[m
+[m98300
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenQuarterRewritten_mean   [m[0;33m   1052173 ns    1052150 ns [m[0;36m       690[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenQuarterRewritten_median [m[0;33m   1053321 ns    1053311 ns [m[0;36m       690[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenQuarterRewritten_stddev [m[0;33m     20562 ns      20562 ns [m[0;36m       690[m
+[m200000
+2176
+2176
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenSingle_mean             [m[0;33m    169443 ns     169440 ns [m[0;36m      4159[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenSingle_median           [m[0;33m    169051 ns     169047 ns [m[0;36m      4159[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenSingle_stddev           [m[0;33m      2730 ns       2730 ns [m[0;36m      4159[m
+[m2176
+[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenSingleRewritten_mean    [m[0;33m    179497 ns     179493 ns [m[0;36m      3911[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenSingleRewritten_median  [m[0;33m    178823 ns     178818 ns [m[0;36m      3911[m
+[m[0;32mTPCHDataMicroBenchmarkFixture/BM_TPCHQ20BetweenSingleRewritten_stddev  [m[0;33m      3953 ns       3953 ns [m[0;36m      3911[m
+[m
