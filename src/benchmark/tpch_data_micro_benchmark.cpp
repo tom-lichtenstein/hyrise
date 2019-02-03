@@ -356,7 +356,7 @@ BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20BetweenEights)(benchmark::S
   auto first_predicate =
       std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("l"));
   auto second_predicate =
-      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("n"));
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("m"));
   static bool first = true;
 
   for (auto _ : state) {
@@ -380,7 +380,7 @@ BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20BetweenEightsRewritten)(ben
   auto part_table = sm.get_table("part");
   auto operand = pqp_column_(ColumnID{1}, part_table->column_data_type(ColumnID{1}),
                              part_table->column_is_nullable(ColumnID{1}), "");
-  auto predicate = std::make_shared<BetweenExpression>(operand, value_("l"), value_("n"), true, false);
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("l"), value_("m"), true, false);
   static bool first = true;
   for (auto _ : state) {
     const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("part"), predicate);
