@@ -146,7 +146,7 @@ BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20Like)(benchmark::State& sta
   }
 }
 
-BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20LikeRewritten)(benchmark::State& state) {
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20LikeBetween)(benchmark::State& state) {
   auto& sm = StorageManager::get();
   auto part_table = sm.get_table("part");
   auto operand = pqp_column_(ColumnID{1}, part_table->column_data_type(ColumnID{1}),
@@ -183,7 +183,7 @@ BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20LikeNarrow)(benchmark::Stat
   }
 }
 
-BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20LikeRewrittenNarrow)(benchmark::State& state) {
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20LikeNarrowBetween)(benchmark::State& state) {
   auto& sm = StorageManager::get();
   auto part_table = sm.get_table("part");
 
@@ -195,6 +195,776 @@ BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ20LikeRewrittenNarrow)(benchm
 
   for (auto _ : state) {
     const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("part"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeM_N)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("m%"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeM_NRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("m"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("n"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeM_NBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("m"), value_("n"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeS_T)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("s%"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeS_TRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("s"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("t"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeS_TBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("s"), value_("t"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeL_M)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("l%"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeL_MRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("l"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("m"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeL_MBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("l"), value_("m"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeA_B)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("a%"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeA_BRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("a"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("b"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeA_BBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("a"), value_("b"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeCO_CP)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("co%"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeCO_CPRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("co"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("cp"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeCO_CPBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("co"), value_("cp"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeASDF_ASDG)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("asdf%"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeASDF_ASDGRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("asdf"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("asdg"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeASDF_ASDGBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("asdf"), value_("asdg"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeX_Y)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("x%"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeX_YRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("x"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("y"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeX_YBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("x"), value_("y"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeSPACE_CLAIM)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_(" %"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeSPACE_CLAIMRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_(" "));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("!"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeSPACE_CLAIMBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_(" "), value_("!"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeO_P)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("o%"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeO_PRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("o"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("p"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeO_PBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("o"), value_("p"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeU_V)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("u%"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeU_VRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("u"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("v"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeU_VBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("u"), value_("v"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeSA_SB)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+  auto predicate = std::make_shared<BinaryPredicateExpression>(PredicateCondition::Like, operand, value_("sa%"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
+    table_scan->execute();
+    if (first) {
+      std::cout << table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeSA_SBRewritten)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto first_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::GreaterThanEquals, operand, value_("sa"));
+  auto second_predicate =
+      std::make_shared<BinaryPredicateExpression>(PredicateCondition::LessThan, operand, value_("sb"));
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto first_table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), first_predicate);
+    const auto second_table_scan = std::make_shared<TableScan>(first_table_scan, second_predicate);
+
+    first_table_scan->execute();
+    second_table_scan->execute();
+
+    if (first) {
+      std::cout << _table_wrapper_map.at("lineitem")->get_output()->row_count() << std::endl;
+      std::cout << first_table_scan->get_output()->row_count() << std::endl;
+      std::cout << second_table_scan->get_output()->row_count() << std::endl;
+      first = false;
+    }
+  }
+}
+
+BENCHMARK_F(TPCHDataMicroBenchmarkFixture, BM_TPCHQ60LikeSA_SBBetween)(benchmark::State& state) {
+  auto& sm = StorageManager::get();
+  auto part_table = sm.get_table("lineitem");
+
+  auto operand = pqp_column_(ColumnID{15}, part_table->column_data_type(ColumnID{15}),
+                             part_table->column_is_nullable(ColumnID{15}), "");
+
+  auto predicate = std::make_shared<BetweenExpression>(operand, value_("sa"), value_("sb"), true, false);
+
+  static bool first = true;
+
+  for (auto _ : state) {
+    const auto table_scan = std::make_shared<TableScan>(_table_wrapper_map.at("lineitem"), predicate);
     table_scan->execute();
     if (first) {
       std::cout << table_scan->get_output()->row_count() << std::endl;

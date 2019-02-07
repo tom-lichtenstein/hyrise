@@ -1,7 +1,0 @@
-{
-  "visualize": true,
-  "query_path": "like/like-manually-optimized-tpch.sql",
-  "table_path": "tables",
-  "encoding": "Unencoded",
-  "output": "like/results-unencoded-manually-optimized.txt"
-}

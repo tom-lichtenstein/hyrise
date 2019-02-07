@@ -1,7 +1,0 @@
-{
-  "visualize": true,
-  "query_path": "between/range-original-tpch.sql",
-  "table_path": "tables",
-  "encoding": "Dictionary",
-  "output": "between/results-dictionary-original.txt"
-}

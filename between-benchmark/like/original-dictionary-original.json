@@ -1,7 +1,0 @@
-{
-  "visualize": true,
-  "query_path": "like/like-original-tpch.sql",
-  "table_path": "tables",
-  "encoding": "Dictionary",
-  "output": "like/results-dictionary-original.txt"
-}
